@@ -124,23 +124,34 @@ mod_getDataPed_server <- function(id, data = NULL, res_auth=NULL){
     ns <- session$ns
 
     # warning message
-    output$warningMessage <- renderUI(
-      if(is.null(data())){
-        HTML( as.character(div(style="color: red; font-size: 20px;", "Please retrieve or load your data using the 'Data' tab.")) )
-      }else{ # data is there
-        if(!is.null(data()$data$pedigree)){
-          if(!is.null(data()$metadata$pedigree)){
-            if(length(setdiff(data()$metadata$pedigree$value,"")) > 0){
-              HTML( as.character(div(style="color: green; font-size: 20px;", "Data is complete, you can proceed to use the other modules.")) )
-            }else{
-              HTML( as.character(div(style="color: red; font-size: 20px;", "Please map/match your columns.")) )
-            }
-          }else{
-            HTML( as.character(div(style="color: red; font-size: 20px;", "Please map/match your columns.")) )
-          }
-        }else{HTML( as.character(div(style="color: red; font-size: 20px;", "Please retrieve or load your data using the 'Data' tab. ")) )}
+    output$warningMessage <- renderUI({
+      if (is.null(data())) {
+        return(HTML(as.character(div(style="color: red; font-size: 20px;",
+                                     "Please retrieve or load your data using the 'Data' tab."))))
       }
-    )
+
+      if (is.null(data()$data$pedigree)) {
+        return(HTML(as.character(div(style="color: red; font-size: 20px;",
+                                     "Please retrieve or load your data using the 'Data' tab. "))))
+      }
+
+      md <- data()$metadata$pedigree
+      # required fields for completeness
+      req_params <- c("designation", "mother", "father")
+
+      ok <- !is.null(md) &&
+        all(req_params %in% md$parameter) &&
+        all(md$value[match(req_params, md$parameter)] != "")
+
+      if (ok) {
+        HTML(as.character(div(style="color: green; font-size: 20px;",
+                              "Data is complete, you can proceed to use the other modules.")))
+      } else {
+        HTML(as.character(div(style="color: red; font-size: 20px;",
+                              "Please map/match your columns (required: designation, mother, father).")))
+      }
+    })
+
 
     observeEvent(
       input$ped_input,
@@ -246,7 +257,72 @@ mod_getDataPed_server <- function(id, data = NULL, res_auth=NULL){
           label    = 'Year of Origin',
           choices  = as.list(c('', header)),
         )),
-
+        column(3, selectInput(
+          inputId  = ns('ped_sample_id'),
+          label    = 'sample_id (optional)',
+          choices  = as.list(c('', header))
+        )),
+        column(3, selectInput(
+          inputId  = ns('ped_crossType'),
+          label    = tags$span(
+            "crossType (optional)",
+            tags$i(
+              class = "glyphicon glyphicon-info-sign",
+              style = "color:#000000",
+              title = "Mandatory to run F1 qa/qc module. Select column that indicates whether an individual is an F1 or a parent"
+            )
+          ),
+          choices  = as.list(c('', header))
+        )),
+        column(3, selectInput(
+          inputId  = ns('ped_otherF1'),
+          label    = tags$span(
+            "F1 qa/qc other metadata (optional)",
+            tags$i(
+              class = "glyphicon glyphicon-info-sign",
+              style = "color:#000000",
+              title = "Allow inclusion of plant number or other metadata relevant for F1 qa/qc"
+            )
+          ),
+          choices  = as.list(c('', header))
+        )),
+        column(3, selectInput(
+          inputId  = ns('ped_batchqaPed'),
+          label    = tags$span(
+            "Pedigree qa/qc batch (optional)",
+            tags$i(
+              class = "glyphicon glyphicon-info-sign",
+              style = "color:#000000",
+              title = "Select batch number for each designation"
+            )
+          ),
+          choices  = as.list(c('', header))
+        )),
+        column(3, selectInput(
+          inputId  = ns('ped_plateqaPed'),
+          label    = tags$span(
+            "Pedigree qa/qc plate (optional)",
+            tags$i(
+              class = "glyphicon glyphicon-info-sign",
+              style = "color:#000000",
+              title = "Select plate number for each designation"
+            )
+          ),
+          choices  = as.list(c('', header))
+        )),
+        column(3, selectInput(
+          inputId  = ns('ped_posqaPed'),
+          label    = tags$span(
+            "Pedigree qa/qc position (optional)",
+            tags$i(
+              class = "glyphicon glyphicon-info-sign",
+              style = "color:#000000",
+              title = "Select position number for each designation"
+            )
+          ),
+          choices  = as.list(c('', header))
+        )),
+        
         renderPrint({
           temp <- data()
 
@@ -274,55 +350,46 @@ mod_getDataPed_server <- function(id, data = NULL, res_auth=NULL){
             temp$metadata$pedigree <- rbind(temp$metadata$pedigree, data.frame(parameter = "yearOfOrigin", value = input$ped_year ))
           }
 
+          if ("sample_id" %in% temp$metadata$pedigree$parameter) {
+            temp$metadata$pedigree[temp$metadata$pedigree$parameter == "sample_id", 'value'] <- input$ped_sample_id
+          } else {
+            temp$metadata$pedigree <- rbind(temp$metadata$pedigree, data.frame(parameter = "sample_id", value = input$ped_sample_id))
+          }
+
+          if ("crossType" %in% temp$metadata$pedigree$parameter) {
+            temp$metadata$pedigree[temp$metadata$pedigree$parameter == "crossType", 'value'] <- input$ped_crossType
+          } else {
+            temp$metadata$pedigree <- rbind(temp$metadata$pedigree, data.frame(parameter = "crossType", value = input$ped_crossType))
+          }
+
+          if ("other" %in% temp$metadata$pedigree$parameter) {
+            temp$metadata$pedigree[temp$metadata$pedigree$parameter == "other", 'value'] <- input$ped_otherF1
+          } else {
+            temp$metadata$pedigree <- rbind(temp$metadata$pedigree, data.frame(parameter = "other", value = input$ped_otherF1))
+          }
+
+          if ("batch" %in% temp$metadata$pedigree$parameter) {
+            temp$metadata$pedigree[temp$metadata$pedigree$parameter == "batch", 'value'] <- input$ped_batchqaPed
+          } else {
+            temp$metadata$pedigree <- rbind(temp$metadata$pedigree, data.frame(parameter = "batch", value = input$ped_batchqaPed))
+          }
+          
+          if ("plate" %in% temp$metadata$pedigree$parameter) {
+            temp$metadata$pedigree[temp$metadata$pedigree$parameter == "plate", 'value'] <- input$ped_plateqaPed
+          } else {
+            temp$metadata$pedigree <- rbind(temp$metadata$pedigree, data.frame(parameter = "plate", value = input$ped_plateqaPed))
+          }
+          
+          if ("position" %in% temp$metadata$pedigree$parameter) {
+            temp$metadata$pedigree[temp$metadata$pedigree$parameter == "position", 'value'] <- input$ped_posqaPed
+          } else {
+            temp$metadata$pedigree <- rbind(temp$metadata$pedigree, data.frame(parameter = "position", value = input$ped_posqaPed))
+          }
           data(temp)
         }),
       )
     })
 
-    # output$ped_summary <- output$ped_summary2 <- renderText({
-    #   req(input$ped_designation)
-    #   tmp <- data()
-    #   ped <- ped_data()
-    #   if (!is.null(ped) & any(tmp$metadata$pheno$parameter == 'designation') & any(tmp$metadata$pedigree$parameter == 'designation') ) {
-    #     designationColumnInPheno <- tmp$metadata$pheno[which(tmp$metadata$pheno$parameter == "designation"),"value"]
-    #     designationColumnInPed <- tmp$metadata$pedigree[which(tmp$metadata$pedigree$parameter == "designation"),"value"]
-    #     paste(
-    #       "Data Integrity Checks:\n",
-    #       ifelse( (length(designationColumnInPed)+length(designationColumnInPheno) ) == 2, sum(ped[, designationColumnInPed ] %in% unique(tmp$data$pheno[, designationColumnInPheno ]) ) , 0),
-    #       "Accessions exist in both phenotypic and pedigree files\n",
-    #       ifelse( length(designationColumnInPheno) > 0 , sum(!unique(tmp$data$pheno[, designationColumnInPheno ]) %in% ped[, designationColumnInPed ]), 0),
-    #       "Accessions have phenotypic data but no pedigree data\n",
-    #       ifelse(any(tmp$metadata$pedigree$parameter == 'yearOfOrigin') & (length(designationColumnInPed)+length(designationColumnInPheno) ) == 2,  sum(ped[, designationColumnInPed ] %in% unique(tmp$data$pheno[, designationColumnInPheno ])) ,0),
-    #       "Accessions in phenotypic data have no year of origin info\n"
-    #     )
-    #   }
-    # })
-
-    # observeEvent(
-    #   input$ped_example,
-    #   if (input$ped_example) {
-    #     updateSelectInput(session, 'ped_input', selected = 'url')
-    #
-    #     # ped_example_url <-  paste0(session$clientData$url_protocol, '//',
-    #     #                            session$clientData$url_hostname, ':',
-    #     #                            session$clientData$url_port,
-    #     #                            session$clientData$url_pathname,
-    #     #                            ped_example)
-    #
-    #     ped_example_url <- 'https://raw.githubusercontent.com/Breeding-Analytics/bioflow/main/inst/app/www/example/pedigree.csv'
-    #
-    #     updateTextInput(session, 'ped_url', value = ped_example_url)
-    #
-    #     golem::invoke_js('hideid', ns('ped_file_holder'))
-    #     golem::invoke_js('showid', ns('ped_url'))
-    #   } else {
-    #     updateSelectInput(session, 'ped_input', selected = 'file')
-    #     updateTextInput(session, 'ped_url', value = '')
-    #
-    #     golem::invoke_js('showid', ns('ped_file_holder'))
-    #     golem::invoke_js('hideid', ns('ped_url'))
-    #   }
-    # )
 
     ## data example loading
     observeEvent(

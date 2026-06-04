@@ -373,17 +373,17 @@ mod_hybridityApp_ui <- function(id){
                                                                                   ),value = 1.0,min = 0,max = 1,step = 0.01)
                                                                    )
                                                             ),
-                                                            column(width = 3,
-                                                                   tags$div(
-                                                                     numericInput(ns("mid_thres_mp"),
-                                                                                  label = tags$span(
-                                                                                    "Mid match probability threshold",
-                                                                                    tags$i(class = "glyphicon glyphicon-info-sign",
-                                                                                           style = "color:#FFFFFF",
-                                                                                           title = "Value of match probability above which the progeny is considered a LIKELY F1")
-                                                                                  ),value = 0.9,min = 0,max = 1,step = 0.01)
-                                                                   )
-                                                            ),
+                                                            #column(width = 3,
+                                                            #       tags$div(
+                                                            #         numericInput(ns("mid_thres_mp"),
+                                                            #                      label = tags$span(
+                                                            #                        "Mid match probability threshold",
+                                                            #                        tags$i(class = "glyphicon glyphicon-info-sign",
+                                                            #                               style = "color:#FFFFFF",
+                                                            #                               title = "Value of match probability above which the progeny is considered a LIKELY F1")
+                                                            #                      ),value = 0.9,min = 0,max = 1,step = 0.01)
+                                                            #       )
+                                                            #),
                                                             column(width = 3,
                                                                    tags$div(
                                                                      numericInput(ns("low_thres_mp"),
@@ -404,22 +404,48 @@ mod_hybridityApp_ui <- function(id){
 
                                              # ------------ Run analysis ------------
 
-                                             tabPanel("Run analysis", icon = icon("dice-four"),
-                                                      br(),
-                                                      column(width=12,style = "background-color:grey; color: #FFFFFF",
-                                                             column(width=3, tags$div(textInput(ns("analysisIdName"), label = tags$span(
-                                                               "Analysis Name (optional)", tags$i( class = "glyphicon glyphicon-info-sign", style = "color:#FFFFFF",
-                                                                                                   title = "An optional name for the analysis besides the timestamp if desired.") ), #width = "100%",
-                                                               placeholder = "(optional name)") ) ),
-                                                             column(width=3,
-                                                                    br(),
-                                                                    actionButton(ns("runQaMb"), "Compute verification", icon = icon("play-circle")),
-                                                                    uiOutput(ns("qaQcStaInfo")),
-                                                                    br(),
-                                                             ),
-
-                                                      ),textOutput(ns("outQaMb")),
-                                             ),
+                                             tabPanel(
+                                               "Run analysis", icon = icon("dice-four"),
+                                               br(),
+                                               column(
+                                                 width = 12, style = "background-color:grey; color: #FFFFFF",
+                                                 column(
+                                                   width = 3,
+                                                   tags$div(
+                                                     textInput(
+                                                       ns("analysisIdName"),
+                                                       label = tags$span(
+                                                         "Analysis Name (optional)",
+                                                         tags$i(
+                                                           class = "glyphicon glyphicon-info-sign",
+                                                           style = "color:#FFFFFF",
+                                                           title = "An optional name for the analysis besides the timestamp if desired."
+                                                         )
+                                                       ),
+                                                       placeholder = "(optional name)"
+                                                     ),
+                                                     checkboxInput(
+                                                       inputId = ns("filterF1PerDesignation"),
+                                                       label = tags$span(
+                                                         "Filter genotype matrix so that only a single highest scoring F1 genotype is kept per designation",
+                                                         tags$i(class = "glyphicon glyphicon-info-sign",
+                                                                style = "color:#FFFFFF",
+                                                                title = "Only select if multiple sample_ids are mapped to the same designation in pedigree file")),
+                                                       value = FALSE
+                                                     )
+                                                   )
+                                                 ),
+                                                 column(
+                                                   width = 3,
+                                                   br(),
+                                                   actionButton(ns("runQaMb"), "Compute verification", icon = icon("play-circle")),
+                                                   uiOutput(ns("qaQcStaInfo")),
+                                                   br()
+                                                 )
+                                               ),
+                                               textOutput(ns("outQaMb"))
+                                             )
+                                             ,
                                            ) # end of tabset
                                   ),# end of output panel
                                   tabPanel(div(icon("arrow-right-from-bracket"), "Output tabs" ) , value = "outputTabs",
@@ -480,7 +506,7 @@ mod_hybridityApp_server <- function(id, data){
     ############################################################################
     # warning message
     output$warningMessage <- renderUI(
-      
+
       if(is.null(data())){
         HTML( as.character(div(style="color: red; font-size: 20px;", "Please retrieve or load your data using the 'Data' tab.")) )
       }else{ # data is there
@@ -492,7 +518,7 @@ mod_hybridityApp_server <- function(id, data){
             ped <- data()$data$pedigree
             metaPed <- data()$metadata$pedigree
             colnames(ped) <- cgiarBase::replaceValues(colnames(ped), Search = metaPed$value, Replace = metaPed$parameter )
-            
+
             if("crossType" %in% colnames(ped)){
               if(any(ped$crossType == "F1", na.rm = TRUE)){
                 HTML( as.character(div(style="color: green; font-size: 20px;", "Data is complete, please proceed to perform F1 QA/QC specifying your input parameters under the Input tabs.")) )
@@ -503,7 +529,7 @@ mod_hybridityApp_server <- function(id, data){
               HTML( as.character(div(style="color: red; font-size: 20px;","To run the F1 qa/qc module the crossType column in the pedigree data needs to indicate which individuals are F1s to be evaluated")))
             }
           }
-          
+
         }else{HTML( as.character(div(style="color: red; font-size: 20px;", "Please retrieve or load your genotype data using the 'Data' tab. ")) )}
       }
   )
@@ -1008,22 +1034,129 @@ mod_hybridityApp_server <- function(id, data){
         ploidy=ploidy,
         sc_filter=filter_by_score,
         het=input$parentHetThreshold,
-        matchThres=c(input$upper_thres_mp,input$mid_thres_mp,input$low_thres_mp)
+        matchThres=c(input$upper_thres_mp,0,input$low_thres_mp)
       )
-      #if(!inherits(result,"try-error")) {
-      #  provitional <- individualVerification(
-      #    #cgiarPipeline::individualVerification(
-      #    object= data(),
-      #    analysisIdForGenoModifications= input$version2F1qaqc,
-      #    markersToBeUsed=selMarkers,
-      #    colsForExpecGeno=input$units2Verif,
-      #    ploidy=ploidy,
-      #    sc_filter=filter_by_score,
-      #    het = input$parentHetThreshold,
-      #    matchThres = c(input$upper_thres_mp,input$mid_thres_mp,input$low_thres_mp),
-      #    onlyMats=TRUE
-      #  )
-      #}
+
+      idQa <- result$status[which(result$status$module %in% c("gVerif")),"analysisId"];
+       idQa <- idQa[length(idQa)]
+       
+       result$modeling=result$modeling[-which(result$modeling[result$modeling$analysisId==idQa,]$parameter=="MidMatchProbThres"),]
+       
+       predictionsX <- result$predictions[which( result$predictions$analysisId == idQa),]
+       modeling <- result$modeling[which(result$modeling$analysisId == idQa),]
+       upperThres <- modeling[modeling$parameter == "UpperMatchProbThres","value"]
+       #midThres <- modeling[modeling$parameter == "MidMatchProbThres","value"]
+       lowerThres <- modeling[modeling$parameter == "LowerMatchProbThres","value"]
+       
+       upperThres = as.numeric(upperThres)
+       #midThres = as.numeric(midThres)
+       lowerThres = as.numeric(lowerThres)
+       
+       idx <- (predictionsX$trait == "probMatch") 
+       
+       status <- ifelse(predictionsX$predictedValue[idx] >= upperThres, "GOOD",
+                        #ifelse(predictionsX$predictedValue[idx] >= midThres, "QUESTIONABLE",
+                        ifelse(predictionsX$predictedValue[idx] >= lowerThres, "QUESTIONABLE","BAD"))
+       prob_status <- unique(data.frame(designation = predictionsX$designation[idx],
+                                      .status = status,
+                                      stringsAsFactors = FALSE))
+      
+      na_status = prob_status[is.na(prob_status$.status),]
+      
+      idx2 <- (predictionsX$designation %in% na_status$designation) & 
+        (predictionsX$trait == "parHetFilter") 
+      idx3 <- (predictionsX$designation %in% na_status$designation) & 
+        (predictionsX$trait == "ParentHasGeno")
+      idx4 <- (predictionsX$designation %in% na_status$designation) & 
+        (predictionsX$trait == "HasPed")
+      idx5 <- (predictionsX$designation %in% na_status$designation) & 
+        (predictionsX$trait == "HasGeno")
+      
+      other_status <- ifelse(predictionsX$predictedValue[idx5] == 0, "NO GENO DATA",
+                             ifelse(predictionsX$predictedValue[idx2] == 0, "PARENT FAIL",
+                                    ifelse(predictionsX$predictedValue[idx3] == 0, "PARENT FAIL",
+                                           ifelse(predictionsX$predictedValue[idx4] == 0, "PARENT FAIL",NA))))
+      
+      prob_status[is.na(prob_status$.status),".status"] = other_status
+      
+      sst=match(prob_status$designation,result$data$pedigree$sample_id)
+      result$modifications$pedigree<-data.frame(cbind(module="gVerif",analysisId=idQa,reason=prob_status[,2],row=sst))
+      
+      #If checkbox is ticked
+      if(input$filterF1PerDesignation){
+        Markers = as.data.frame(gl_obj)
+
+        ## extract marker matrices and reference alleles
+        ped <- dtVerif$data$pedigree
+        metaPed <- dtVerif$metadata$pedigree
+        colnames(ped) <- cgiarBase::replaceValues(colnames(ped), Search = metaPed$value, Replace = metaPed$parameter )
+        F1_ind = ped[ped$crossType == "F1",c("sample_id","designation")]
+
+        Markers_F1 = Markers[F1_ind$sample_id,]
+
+        #Get highest scoring sample_id per designation
+        preds = result$predictions[result$predictions$module == "gVerif",]
+        preds = preds[preds$analysisId==max(preds$analysisId),]
+        preds_mProb = preds[preds$trait == "probMatch",]
+        preds_mProb = preds_mProb[,c("designation","predictedValue")]
+        colnames(preds_mProb)[1] = "sample_id"
+
+        preds_mProb = merge(F1_ind,preds_mProb)
+
+
+        out <- do.call(rbind, lapply(split(preds_mProb, preds_mProb$designation), function(d) {
+          # drop groups where all y are NA
+          if (all(is.na(d$predictedValue))) return(d[0, , drop = FALSE])
+          # pick first occurrence of the group maximum (ignoring NAs)
+          d[which.max(replace(d$predictedValue, is.na(d$predictedValue), -Inf)), , drop = FALSE]
+        }))
+        row.names(out) <- NULL
+
+        Markers_F1 = Markers_F1[out$sample_id,,drop = FALSE]
+        rownames(Markers_F1) = out$designation
+        if(length(rownames(Markers)[!rownames(Markers)%in%F1_ind$sample_id])>0){
+          Markers = Markers[!rownames(Markers)%in%F1_ind$sample_id,]
+          Markers = rbind(Markers,Markers_F1)
+        }
+        Markers = as.genlight(Markers)
+        Markers$loc.all = gl_obj$loc.all
+        Markers$chromosome = gl_obj$chromosome
+        Markers$position = gl_obj$position
+
+        #Individual info
+        ind_metrics = gl_obj$other$ind.metrics
+        ind_metrics_F1 = ind_metrics[out$sample_id,]
+        rownames(ind_metrics_F1) = out$designation
+        ind_metrics_par = ind_metrics[!rownames(ind_metrics)%in%ped$sample_id[ped$crossType == "F1"],]
+        ind_metrics = rbind(ind_metrics_F1,ind_metrics_par)
+        ind_metrics = ind_metrics[Markers$ind.names,]
+
+        Markers$other$loc.metrics = gl_obj$other$loc.metrics
+        Markers$other$ind.metrics = ind_metrics
+
+        #Save back to geno_imp
+        result$data$geno_imp[[qas]] = Markers
+
+        #Store modifications
+        #Get excluded rows:
+        ids = adegenet::indNames(gl_obj)
+        excl_ids = which((!ids %in% out$sample_id) & (!ids %in% rownames(ind_metrics_par)))
+
+        mod_F1 = data.frame(reason = "Non_selected_F1_or_duplicate",
+                         row = excl_ids,
+                         col = NA,
+                         value = NA,
+                         analysisId = unique(preds$analysisId),
+                         analysisIdName = input$analysisIdName,
+                         module = "gVerif")
+
+        if(is.null(result$modifications$geno)){
+          result$modifications$geno = mod_F1
+        }else{
+          result$modifications$geno = rbind(result$modifications$geno,mod_F1)
+        }
+
+      }
 
       # save(result, file = "./R/outputs/resultVerifGeno.RData")
       shinybusy::remove_modal_spinner()

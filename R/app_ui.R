@@ -58,7 +58,7 @@ app_ui <- function(request) {
 
       navbarMenu("Home", icon = icon("house"),
                  tabPanel(div( icon("battery"), "Bioflow" ), mod_homeApp_ui("homeApp_1"), tags$script(HTML("var header = $('.navbar> .container-fluid');
-                               header.append('<div id=\"my-title\">Bioflow 2.0.2 - 2025.11.07</div>');
+                               header.append('<div id=\"my-title\">Bioflow 2.0.3 - 2025.12.15</div>');
                                ")),
                           tags$style(HTML('.navbar-collapse.collapse {display: inline-block !important;}
                                    #my-title {
@@ -84,16 +84,16 @@ app_ui <- function(request) {
       navbarMenu("Data Management ", icon = icon("upload"),
 
                  tabPanel(strong("DATA RETRIEVAL AND SAVING"), mod_sectionInfoDRASApp_ui("sectionInfoDRASApp_1") ),
-                 tabPanel(div(icon("folder"), "Retrieve New Data"),
+                 tabPanel(div(icon("folder"), "Retrieve New Data"), value = "retrieveNewData_tab",
                           tabsetPanel( #widths = c(1, 11),
                             tabPanel(div(icon("seedling"), "Phenotypic"), mod_getDataPheno_ui("getDataPheno_1")  ),
+                            tabPanel(div(icon("code-fork"), "Pedigree & Geno metadata"), mod_getDataPed_ui("getDataPed_1") ),
                             tabPanel(div(icon("dna"), "Genotypic"), mod_getDataGeno_ui("getDataGeno_1") ),
-                            tabPanel(div(icon("code-fork"), "Pedigree"), mod_getDataPed_ui("getDataPed_1") ),
                             tabPanel(div(icon("anchor"), "QTL profile"), mod_getDataQTL_ui("getDataQTL_1") ),
                             tabPanel(div(icon("cloud-sun-rain"), "Weather"), mod_getDataWeather_ui("getDataWeather_1") ),
                           )
                  ),
-                 tabPanel(div(icon("folder-open"), "Retrieve Old Analysis"),
+                 tabPanel(div(icon("folder-open"), "Retrieve Old Analysis"), value = "retrieveOldAnalysis_tab",
                           mod_bindObjectApp_ui("bindObjectApp_1") ,
                  ),
                  tabPanel(div( icon("floppy-disk"), "Save Data/Results",  ), mod_saveData_ui("saveData_1")  ),
@@ -101,11 +101,12 @@ app_ui <- function(request) {
                  tabPanel(strong("DATA QUALITY CHECK"), mod_sectionInfoQAApp_ui("sectionInfoQAApp_1") ),
                  tabPanel(div(icon("soap"), "Phenotype QA/QC (", icon("seedling"),")" ), mod_qaPhenoApp_ui("qaPhenoApp_1") ),
                  tabPanel(div(icon("soap"), "Genotype QA/QC (", icon("dna"), ")" ), mod_qaGenoApp_ui("qaGenoApp_1") ),
-                 #tabPanel(div("(optional) Pedigree QA/QC (", icon("network-wired"), ")" ), mod_qaPedApp_ui("qaPedApp_1") ),
-                 # tabPanel(div(icon("filter-circle-xmark"), "Data Quality Assurance" ),
-                 #          navlistPanel( "Options:", widths = c(1, 11),
-                 #          )
-                 # ),
+                 tabPanel(div(icon("soap"), "Pedigree QA/QC (", icon("network-wired"),")"), value = "PedApp_tab",
+                          navlistPanel("Options:", widths = c(1, 11),
+                                       tabPanel(div("F1 (", icon("network-wired"), ")"), mod_hybridityApp_ui("hybridityApp_1") ),
+									                     tabPanel(div("Later generations (", icon("network-wired"), ")" ), mod_qaPedApp_ui("qaPedApp_1") ),									   
+									        )
+                 ),
                  tabPanel(strong("DATA TRANSFORMATIONS"),  mod_sectionInfoTransformApp_ui("sectionInfoTransformApp_1") ),
                  tabPanel(div(icon("arrows-split-up-and-left"), "Trait Transformations (", icon("seedling"), ")" ),  mod_traitTransformApp_ui("traitTransformApp_1") ),
                  #tabPanel(div(icon("arrows-split-up-and-left"), "Single-Cross Markers (", icon("dna"), ")" ), mod_singleCrossGenoApp_ui("singleCrossGenoApp_1")  ),
@@ -130,9 +131,9 @@ app_ui <- function(request) {
                           )
                  ),
 
-                 tabPanel(div(icon("calculator"), icon("dice-two"), "Multi-Trial Analysis (", icon("seedling"), icon("dna"), icon("network-wired"), icon("cloud-sun-rain"), ")"),
+                 tabPanel(div(icon("calculator"), icon("dice-two"), "Multi-Trial Analysis (", icon("seedling"), icon("dna"), icon("network-wired"), icon("cloud-sun-rain"), ")"), value = "mtaApp_tab",
                           navlistPanel("Engines:", widths = c(1, 11),
-                                       tabPanel(div("LMMsolver" ), mod_mtaLMMsolveApp_ui("mtaLMMsolveApp_1") ), # biplot is part of the report in MET
+                                       tabPanel(div("LMMsolver" ), mod_mtaLMMsolveApp_ui("mtaLMMsolveApp_1")), # biplot is part of the report in MET
                                        # tabPanel(div("lme4", style = "color:red" )) , # biplot is part of the report in MET
                                        # tabPanel(div("sommer", style = "color:red" )) , # biplot is part of the report in MET
                                        tabPanel(div("ASReml"), mod_mtaASREMLApp_ui("mtaASREMLApp_1")),
@@ -163,7 +164,8 @@ app_ui <- function(request) {
 
       navbarMenu("Mutation", icon = icon("disease"),
                  tabPanel(strong("DISCOVERY"), mod_sectionInfoGDApp_ui("sectionInfoGDApp_1") ),
-                 tabPanel(div(icon("fire"), "Genome wide association (", icon("dna"),")"), mod_gwasqkApp_ui("gwasqkApp_1") ), #  icon = icon("chart-simple")), # may include P3D, traditional single linear regression, Eigen, etc.
+                 #tabPanel(div(icon("fire"), "Genome wide association (", icon("dna"),")"), mod_gwasqkApp_ui("gwasqkApp_1") ), #  icon = icon("chart-simple")), # may include P3D, traditional single linear regression, Eigen, etc.
+                 tabPanel(div(icon("fire"), "Genome wide association (", icon("dna"),")", style = "color:red"),  mod_linkageDisApp_ui("linkageDisApp_1")),
                  #tabPanel(strong("MUTATION HISTORY"), mod_sectionInfoMHApp_ui("sectionInfoMHApp_1") ),
                  #tabPanel(div(icon("chart-line"), "Mutation rate (", icon("dna"),")", style = "color:red"), mod_mutatioRateApp_ui("mutatioRateApp_1") ) #  icon = icon("disease")) # may include
       ),
@@ -175,7 +177,7 @@ app_ui <- function(request) {
                  tabPanel(div(icon("chart-line"), "Linkage disequilibrium (",  icon("dna"), ")", style = "color:red"),  mod_linkageDisApp_ui("linkageDisApp_1") ), #  icon = icon("circle-nodes")), # may include k-means, simulated annealing
                  #tabPanel(div(icon("circle-nodes"), "Pool formation (",  icon("dna"), icon("seedling"), ")", style = "color:red"),  mod_poolFormApp_ui("poolFormApp_1") ), #  icon = icon("circle-nodes")), # may include k-means, simulated annealing
                  tabPanel(div(icon("circle-nodes"), "Pop-subset formation (", icon("dna"), icon("seedling"), ")"), mod_CoreSubsetApp_ui("CoreSubsetApp_1") ), # stpga
-                 tabPanel(div(icon("barcode"), "F1 QA/QC (", icon("dna"), ")"), mod_hybridityApp_ui("hybridityApp_1") ),
+                 #tabPanel(div(icon("barcode"), "F1 QA/QC (", icon("dna"), ")"), mod_hybridityApp_ui("hybridityApp_1") ),
       ),
 
       navbarMenu("Other functions", icon = icon("medal"),

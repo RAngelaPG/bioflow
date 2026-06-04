@@ -129,16 +129,44 @@ mod_mtaLMMsolveApp_ui <- function(id) {
                                       tabPanel(div(icon("dice-three"), "Form your model", icon("arrow-right") ), # icon = icon("dice-two"),
                                                br(),
                                                column(width=12, style = "background-color:grey; color: #FFFFFF",
+                                                      br(),
+                                                      column(
+                                                        width  = 12,
+                                                        tags$div(
+                                                          style = "background:#fff3cd;border:1px solid #ffeeba;color:#856404;padding:12px;border-radius:6px;margin-bottom:12px;",
+                                                          tags$b("Warning:"),
+                                                          tags$p(style = "margin-bottom:0;","Selecting a shortcut to a popular genetic evaluation model or a surrogate of merit will set the default model."),
+                                                          tags$p(style = "margin-top:0;margin-bottom:0;","If you modify the terms, it may no longer match the selected model or merit and will instead follow the terms you specified."),
+                                                        )
+                                                      ),
+                                                      column(
+                                                        width = 12,
+                                                        tags$div(
+                                                          style = "background:#e8f4f8;border:1px solid #9ecfe0;color:#1B4F72;padding:12px;border-radius:6px;margin-bottom:12px;",
+                                                          tags$div(
+                                                            style = "display:flex;align-items:center;justify-content:space-between;gap:12px;",
+                                                            tags$div(
+                                                              tags$b("Need help choosing a model?"),
+                                                              tags$p(
+                                                                style = "margin:4px 0 0 0;",
+                                                                "Answer a few questions and Bioflow will suggest the model shortcut and surrogate of merit."
+                                                              )
+                                                            ),
+                                                            actionButton(ns("mtaWizardStart"), "Help me choose", icon = icon("wand-magic-sparkles"))
+                                                          ),
+                                                          uiOutput(ns("mtaWizardPanel"))
+                                                        )
+                                                      ),
                                                       column(width=12,
                                                              column(width=8,
                                                                     radioButtons(ns("radio"),
                                                                                  label = tags$span(
                                                                                    "Shortcut to popular genetic evaluation models",
-                                                                                   tags$i(
-                                                                                     class = "glyphicon glyphicon-info-sign",
-                                                                                     style = "color:#FFFFFF",
-                                                                                     title = "Selecting a popular genetic model sets a default, but if you change the terms, it may no longer match the selected model and will instead follow the terms you specified."
-                                                                                   )
+                                                                                   # tags$i(
+                                                                                   #   class = "glyphicon glyphicon-info-sign",
+                                                                                   #   style = "color:#FFFFFF",
+                                                                                   #   title = "Selecting a popular genetic model sets a default, but if you change the terms, it may no longer match the selected model and will instead follow the terms you specified."
+                                                                                   # )
                                                                                  ),
                                                                                  choices = list(
                                                                                    "Main effect" = "mn_model",
@@ -146,7 +174,9 @@ mod_mtaLMMsolveApp_ui <- function(id) {
                                                                                    "Finlay-Wilkinson"="fw_model",
                                                                                    "Diagonal" = "dg_model",
                                                                                    "Main+Diagonal" = "mndg_model",
-                                                                                   "Main effects (A+D)" = "ad_model"
+                                                                                   "Main effects (A+D)" = "ad_model",
+                                                                                   "SCA/GCA" = "sca_model",
+                                                                                   "GCA" = "gca_model"
                                                                                  ),
                                                                                  selected = "mn_model", inline=TRUE),
                                                                     radioTooltip(id = ns("radio"), choice = "mn_model", title = "The main effect model assumes that there is no genotype by environment interaction or that can be ignored to focus on average effects. This can occur when we are interested in selecting the best individuals across the TPE without further consideration to specific environments.", placement = "right", trigger = "hover"),
@@ -155,28 +185,38 @@ mod_mtaLMMsolveApp_ui <- function(id) {
                                                                     radioTooltip(id = ns("radio"), choice = "dg_model", title = "The diagonal model assumes that there is a different genetic variance at each environment and that genetic covariance between environments is zero. This relaxes he assumption of the main effect model and ignores a main effect.", placement = "right", trigger = "hover"),
                                                                     radioTooltip(id = ns("radio"), choice = "mndg_model", title = "The diagonal plus main effect model assumes that there is a main effect for genotypes but at the same time each enviroment causes the expression of environment specific genetic variance. The covariance between genotype effects between environments is assumed to be the same.", placement = "right", trigger = "hover"),
                                                                     radioTooltip(id = ns("radio"), choice = "ad_model", title = "This model includes additve and dominance random effects for the designation. Only use in order to run GPCP in the mate optimization module", placement = "right", trigger = "hover"),
+                                                                    radioTooltip(id = ns("radio"), choice = "sca_model", title = "This model includes STA random effects for the designation and GCA random effects for mother and father. Requires pedigree information to map each designation to their respective mother and father", placement = "right", trigger = "hover"),
+                                                                    radioTooltip(id = ns("radio"), choice = "gca_model", title = "This model includes GCA random effects for mother and father.Requires pedigree information to map each designation to their respective mother and father", placement = "right", trigger = "hover")
                                                              ),
                                                              column(width=4,
                                                                     radioButtons(ns("radioModel"),
                                                                                  label = tags$span(
                                                                                    "Shortcut to different surrogates of merit",
-                                                                                   tags$i(
-                                                                                     class = "glyphicon glyphicon-info-sign",
-                                                                                     style = "color:#FFFFFF",
-                                                                                     title = "Selecting a surrogate of merit sets a default covariance structure, but if you change the covariance structure, it may no longer match the selected surrogate of merit and will instead follow the covariance structure you specified."
-                                                                                   )
+                                                                                   # tags$i(
+                                                                                   #   class = "glyphicon glyphicon-info-sign",
+                                                                                   #   style = "color:#FFFFFF",
+                                                                                   #   title = "Selecting a surrogate of merit sets a default covariance structure, but if you change the covariance structure, it may no longer match the selected surrogate of merit and will instead follow the covariance structure you specified."
+                                                                                   # )
                                                                                  ),
                                                                                  choices = list(
                                                                                    "TGV"="none",
                                                                                    "GTGV" = "genoAD_model",
                                                                                    "EBV" = "pedigree_model",
-                                                                                   "GEBV" = "geno_model"
+                                                                                   "GEBV" = "geno_model",
+                                                                                   "SCA/GCA" = "noneSCA_model",
+                                                                                   "GCA" = "noneGCA_model",
+                                                                                   "gSCA/gGCA" = "genoSCA_model",
+                                                                                   "gGCA" = "genoGCA_model"
                                                                                  ),
                                                                                  selected = "none", inline=TRUE),
-                                                                    radioTooltip(id = ns("radioModel"), choice = "none", title = "The TGV model assumes that not known covariance between the levels of designation is known and therefore the BLUP coming out of that model is considered a total genetic value (TGV). ", placement = "right", trigger = "hover"),
+                                                                    radioTooltip(id = ns("radioModel"), choice = "none", title = "The TGV model assumes that there is is no known covariance between the levels of designation and therefore the BLUP coming out of that model is considered a total genetic value (TGV). ", placement = "right", trigger = "hover"),
                                                                     radioTooltip(id = ns("radioModel"), choice = "genoAD_model", title = "The GTGV model assumes that genetic markers coded both as additive and dominance effects should be used to calculate the covariance between levels of designation. The resulting BLUPs are considered genomic estimated total genetic values (GTGV).", placement = "right", trigger = "hover"),
                                                                     radioTooltip(id = ns("radioModel"), choice = "pedigree_model", title = "The EBV model assumes that the pedigree should be used to calculate the covariance between levels of designation. The resulting BLUPs are the so-called estimated breeding values (EBV).", placement = "right", trigger = "hover"),
                                                                     radioTooltip(id = ns("radioModel"), choice = "geno_model", title = "The GEBV model assumes that genetic markers should be used to calculate the covariance between levels of designation. The resulting BLUPs are considered genomic estimated breeding values (GEBV).", placement = "right", trigger = "hover"),
+                                                                    radioTooltip(id = ns("radioModel"), choice = "noneSCA_model", title = "The STA/GCA model assumes that there is no known covariance between the levels of designation, mother and father", placement = "right", trigger = "hover"),
+                                                                    radioTooltip(id = ns("radioModel"), choice = "noneGCA_model", title = "The GCA model assumes that there is no known covariance between the levels of mother and father", placement = "right", trigger = "hover"),
+                                                                    radioTooltip(id = ns("radioModel"), choice = "genoSCA_model", title = "The gSCA/gGCA model assumes that genetic markers should be used to calculate the covariance between levels of designation, mother and father", placement = "right", trigger = "hover"),
+                                                                    radioTooltip(id = ns("radioModel"), choice = "genoGCA_model", title = "The gGCA model assumes that genetic markers should be used to calculate the covariance between levels of mother and father.", placement = "right", trigger = "hover")
                                                              ),
                                                       ),
                                                ),
@@ -263,9 +303,15 @@ mod_mtaLMMsolveApp_ui <- function(id) {
                                                br(),
                                                column(width=12, style = "background-color:DarkGray; color: #FFFFFF",
                                                       br(),
-                                                      shinydashboard::box(width = 12,style = "color: #000000", status = "success", solidHeader=FALSE,collapsible = TRUE, collapsed = TRUE, title = "Fields to exclude (optional)...",
-                                                                          p(span("Fields to exclude in the analysis (double click in the cell and set to zero if you would like to ignore an environment for a given trait).", style="color:black")),
-                                                                          DT::dataTableOutput(ns("fieldsMet")),
+                                                      shinydashboard::box(
+                                                        width = 12, style = "color: #000000", status = "success",
+                                                        solidHeader = FALSE, collapsible = TRUE, collapsed = TRUE,
+                                                        title = "Fields to exclude (optional)...",
+                                                        p(span("Fields to exclude in the analysis (double click in the cell and set to zero if you would like to ignore an environment for a given trait).", style="color:black")),
+                                                        div(
+                                                          style = "overflow-x: auto; width: 100%;",
+                                                          DT::dataTableOutput(ns("fieldsMet"))
+                                                        )
                                                       ),
                                                ),
                                                column(width=6, style = "background-color:LightGray; color: #FFFFFF",
@@ -331,7 +377,25 @@ mod_mtaLMMsolveApp_ui <- function(id) {
                                                                                         )
                                                                                       ),
                                                                                       choices = list(TRUE,FALSE), selected = TRUE, multiple=FALSE),
+                                                                          selectInput(ns("estHybrids"),
+                                                                                      label = tags$span(
+                                                                                        "Estimate hybrid ganotypes from parents?",
+                                                                                        tags$i(
+                                                                                          class = "glyphicon glyphicon-info-sign",
+                                                                                          style = "color:#000000",
+                                                                                          title = "A TRUE/FALSE value in case you want to avoid estimating hybrids from the genotypes of parents with SCA/GCA model."
+                                                                                        )
+                                                                                      ),
+                                                                                      choices = list(TRUE,FALSE), selected = TRUE, multiple=FALSE),
                                                                           selectInput(ns("calcSE"), label = "Calculate SEs?", choices = list(TRUE,FALSE), selected = TRUE, multiple=FALSE),
+                                                                          selectInput(ns("subGeno"), label = "Calculate GEBVs for:",
+                                                                                      choices = list("Designations with both genotype and phenotype data" = -1,
+                                                                                                     "All designations with genotype data" = 0),
+                                                                                      selected = -1, multiple=FALSE),
+                                                                          selectInput(ns("subPed"), label = "Calculate EBVs for:",
+                                                                                      choices = list("Designations with both pedigree and phenotype data" = -1,
+                                                                                                     "All designations with pedigree data" = 0),
+                                                                                      selected = -1, multiple=FALSE),
                                                       ),
                                                ),
                                                column(width = 6, style = "background-color:LightGray; color: #FFFFFF",
@@ -342,7 +406,7 @@ mod_mtaLMMsolveApp_ui <- function(id) {
                                                       ),
                                                ),
                                                column(width=12, style = "background-color:grey; color: #FFFFFF",
-                                                      column(width=12, h5("Number of principal components for possible covariance kernels (0 is none, < 1 restricts to only levels present)"), ),
+                                                      column(width=12, h5("Number of principal components for possible covariance kernels"), ),
                                                       column(width=12, # multiple nesting to center ir (I didn't find any other way)
                                                              column(width=12,
                                                                     uiOutput(ns("nPC"), inline=TRUE)
@@ -377,6 +441,7 @@ mod_mtaLMMsolveApp_ui <- function(id) {
                                                br(),
                                                actionButton(ns("renderReportMta"), "Download dashboard", icon = icon("download")),
                                                downloadButton(ns("downloadReportMta"), "Download dashboard", style = "visibility:hidden;"),
+                                               uiOutput(ns('ebsReportButton')),
                                                br(),
                                                uiOutput(ns('reportMta'))
                                       ),
@@ -406,6 +471,628 @@ mod_mtaLMMsolveApp_ui <- function(id) {
 mod_mtaLMMsolveApp_server <- function(id, data){
   moduleServer(id, function(input, output, session){
     ns <- session$ns
+
+    ###############################################################################
+    ## Help me choose model wizard
+    ###############################################################################
+
+    mtaWizardTree <- list(
+
+      start = list(
+        type = "question",
+        question = "Type of breeding program",
+        choices = list(
+          "Line" = "gxe_important",
+          "Hybrid" = "hybrid_material",
+          "Clone" = "clone_type",
+          "Landraces" = "landrace_objective"
+        )
+      ),
+
+      ## ===== SHARED GxE PATH =====
+      gxe_important = list(
+        type = "question",
+        question = "Is G×E interaction important?",
+        choices = list(
+          "No" = "set_main_effects",
+          "Yes" = "gxe_connectivity"
+        )
+      ),
+
+      gxe_connectivity = list(
+        type = "question",
+        question = "Is there good connectivity between environments?",
+        choices = list(
+          "No" = "gxe_relationship_before_variance",
+          "Yes" = "gxe_environment_variance"
+        )
+      ),
+
+      gxe_relationship_before_variance = list(
+        type = "question",
+        question = "Will you use a relationship matrix?",
+        choices = list(
+          "No" = "set_main_effects",
+          "Yes" = "gxe_environment_variance"
+        )
+      ),
+
+      gxe_environment_variance = list(
+        type = "question",
+        question = "Enough data to estimate environment-specific variances?",
+        choices = list(
+          "No" = "gxe_measure_no_variance",
+          "Yes" = "gxe_measure_yes_variance"
+        )
+      ),
+
+      gxe_measure_no_variance = list(
+        type = "question",
+        question = "Do you want to measure?",
+        choices = list(
+          "Overall performance" = "set_compound_symmetry",
+          "Response to environment" = "gxe_env6_fw"
+        )
+      ),
+
+      gxe_env6_fw = list(
+        type = "question",
+        question = "Do you have at least 6 environments?",
+        choices = list(
+          "Yes" = "set_finlay_wilkinson",
+          "No" = "not_enough_data"
+        )
+      ),
+
+      gxe_measure_yes_variance = list(
+        type = "question",
+        question = "Do you want to measure?",
+        choices = list(
+          "Overall performance" = "set_main_diagonal",
+          "Environment-specific performance" = "set_diagonal",
+          "Response to environment" = "gxe_env6_fa"
+        )
+      ),
+
+      gxe_env6_fa = list(
+        type = "question",
+        question = "Do you have at least 6 environments?",
+        choices = list(
+          "Yes" = "set_finlay_wilkinson",
+          "No" = "not_enough_data"
+        )
+      ),
+
+      ## ===== MODEL SETTERS =====
+      set_main_effects = list(
+        type = "set_model",
+        model_label = "Main effects model",
+        radio = "mn_model",
+        'next' = "som_relationship"
+      ),
+
+      set_compound_symmetry = list(
+        type = "set_model",
+        model_label = "Compound symmetric model",
+        radio = "cs_model",
+        'next' = "som_relationship"
+      ),
+
+      set_finlay_wilkinson = list(
+        type = "set_model",
+        model_label = "Finlay-Wilkinson model",
+        radio = "fw_model",
+        'next' = "som_relationship"
+      ),
+
+      set_diagonal = list(
+        type = "set_model",
+        model_label = "Diagonal model",
+        radio = "dg_model",
+        'next' = "som_relationship"
+      ),
+
+      set_main_diagonal = list(
+        type = "set_model",
+        model_label = "Main + diagonal model",
+        radio = "mndg_model",
+        'next' = "som_relationship"
+      ),
+
+      set_ad_gtgv = list(
+        type = "terminal",
+        available = TRUE,
+        model_label = "Main effects A+D model",
+        merit_label = "GTGV",
+        radio = "ad_model",
+        radioModel = "genoAD_model",
+        message = "Recommended model: Main effects A+D model + GTGV."
+      ),
+
+      ## ===== SURROGATE OF MERIT =====
+      som_relationship = list(
+        type = "question",
+        question = "Will you use a relationship matrix?",
+        choices = list(
+          "No" = "som_tgv",
+          "Yes" = "som_kind"
+        )
+      ),
+
+      som_kind = list(
+        type = "question",
+        question = "Which kind?",
+        choices = list(
+          "Pedigree" = "som_ebv",
+          "Genomic" = "som_genomic_model"
+        )
+      ),
+
+      som_genomic_model = list(
+        type = "question",
+        question = "Do you want to model?",
+        choices = list(
+          "Only additive effects" = "som_gebv",
+          "Additive + other genetic effects" = "som_gtgv"
+        )
+      ),
+
+      som_tgv = list(
+        type = "terminal_merit",
+        merit_label = "TGV",
+        radioModel = "none"
+      ),
+
+      som_ebv = list(
+        type = "terminal_merit",
+        merit_label = "EBV",
+        radioModel = "pedigree_model"
+      ),
+
+      som_gebv = list(
+        type = "terminal_merit",
+        merit_label = "GEBV",
+        radioModel = "geno_model"
+      ),
+
+      som_gtgv = list(
+        type = "terminal_merit",
+        merit_label = "GTGV",
+        radioModel = "genoAD_model"
+      ),
+
+      ## ===== HYBRID PATH =====
+      hybrid_material = list(
+        type = "question",
+        question = "What type of breeding material is under selection?",
+        choices = list(
+          "Line" = "hybrid_testcross",
+          "Hybrid" = "gxe_important"
+        )
+      ),
+
+      hybrid_testcross = list(
+        type = "question",
+        question = "Is the phenotypic data coming from testcrosses?",
+        choices = list(
+          "No" = "set_main_effects",
+          "Yes" = "hybrid_tester"
+        )
+      ),
+
+      hybrid_tester = list(
+        type = "question",
+        question = "Is there more than one tester?",
+        choices = list(
+          "No" = "set_gca",
+          "Yes" = "hybrid_specific_combinations"
+        )
+      ),
+
+      hybrid_specific_combinations = list(
+        type = "question",
+        question = "Are you interested in advancing specific hybrid combinations at this stage?",
+        choices = list(
+          "No" = "set_gca",
+          "Yes" = "set_sca_gca"
+        )
+      ),
+
+      set_gca = list(
+        type = "set_model",
+        model_label = "GCA model",
+        radio = "gca_model",
+        'next' = "som_gca_relationship"
+      ),
+
+      set_sca_gca = list(
+        type = "set_model",
+        model_label = "GCA + SCA model",
+        radio = "sca_model",
+        'next' = "som_sca_relationship"
+      ),
+
+      som_gca_relationship = list(
+        type = "question",
+        question = "Will you use genomic data?",
+        choices = list(
+          "No" = "som_gca",
+          "Yes" = "som_ggca"
+        )
+      ),
+
+      som_sca_relationship = list(
+        type = "question",
+        question = "Will you use genomic data?",
+        choices = list(
+          "No" = "som_sca_gca",
+          "Yes" = "som_gsca_ggca"
+        )
+      ),
+
+      som_gca = list(
+        type = "terminal_merit",
+        merit_label = "GCA",
+        radioModel = "noneGCA_model"
+      ),
+
+      som_ggca = list(
+        type = "terminal_merit",
+        merit_label = "gGCA",
+        radioModel = "genoGCA_model"
+      ),
+
+      som_sca_gca = list(
+        type = "terminal_merit",
+        merit_label = "SCA/GCA",
+        radioModel = "noneSCA_model"
+      ),
+
+      som_gsca_ggca = list(
+        type = "terminal_merit",
+        merit_label = "gSCA/gGCA",
+        radioModel = "genoSCA_model"
+      ),
+
+      ## ===== CLONE PATH =====
+      clone_type = list(
+        type = "question",
+        question = "Type of selection",
+        choices = list(
+          "Advancement" = "gxe_important",
+          "Recycling" = "clone_genomic"
+        )
+      ),
+
+      clone_genomic = list(
+        type = "question",
+        question = "Will you use genomic data?",
+        choices = list(
+          "Yes" = "set_ad_gtgv",
+          "No" = "clone_pedigree"
+        )
+      ),
+
+      clone_pedigree = list(
+        type = "question",
+        question = "Will you use pedigree information?",
+        choices = list(
+          "Yes" = "clone_ebv",
+          "No" = "clone_tgv"
+        )
+      ),
+
+      clone_ebv = list(
+        type = "terminal",
+        available = TRUE,
+        model_label = "Main effects model",
+        merit_label = "EBV",
+        radio = "mn_model",
+        radioModel = "pedigree_model",
+        message = "Recommended model: Main effects model + EBV."
+      ),
+
+      clone_tgv = list(
+        type = "terminal",
+        available = TRUE,
+        model_label = "Main effects model",
+        merit_label = "TGV",
+        radio = "mn_model",
+        radioModel = "none",
+        message = "Recommended model: Main effects model + TGV."
+      ),
+
+      ## ===== LANDRACES PATH =====
+      landrace_objective = list(
+        type = "question",
+        question = "Objective",
+        choices = list(
+          "Diversity maintenance" = "landrace_diversity_relationship",
+          "Breeding" = "landrace_local_adaptation"
+        )
+      ),
+
+      landrace_diversity_relationship = list(
+        type = "question",
+        question = "Are you using a relationship matrix?",
+        choices = list(
+          "No" = "landrace_diversity_tgv",
+          "Yes" = "landrace_diversity_kind"
+        )
+      ),
+
+      landrace_diversity_kind = list(
+        type = "question",
+        question = "Which kind?",
+        choices = list(
+          "Pedigree" = "landrace_diversity_ebv",
+          "Genomic" = "landrace_diversity_genomic_model"
+        )
+      ),
+
+      landrace_diversity_genomic_model = list(
+        type = "question",
+        question = "Do you want to model?",
+        choices = list(
+          "Only additive effects" = "landrace_diversity_gebv",
+          "Additive + other genetic effects" = "landrace_diversity_gtgv"
+        )
+      ),
+
+      landrace_diversity_tgv = list(
+        type = "terminal",
+        available = TRUE,
+        model_label = "Main effects model",
+        merit_label = "TGV",
+        radio = "mn_model",
+        radioModel = "none",
+        message = "Recommended model: Main effects model + TGV."
+      ),
+
+      landrace_diversity_ebv = list(
+        type = "terminal",
+        available = TRUE,
+        model_label = "Main effects model",
+        merit_label = "EBV",
+        radio = "mn_model",
+        radioModel = "pedigree_model",
+        message = "Recommended model: Main effects model + EBV."
+      ),
+
+      landrace_diversity_gebv = list(
+        type = "terminal",
+        available = TRUE,
+        model_label = "Main effects model",
+        merit_label = "GEBV",
+        radio = "mn_model",
+        radioModel = "geno_model",
+        message = "Recommended model: Main effects model + GEBV."
+      ),
+
+      landrace_diversity_gtgv = list(
+        type = "terminal",
+        available = TRUE,
+        model_label = "Main effects model",
+        merit_label = "GTGV",
+        radio = "mn_model",
+        radioModel = "genoAD_model",
+        message = "Recommended model: Main effects model + GTGV."
+      ),
+
+      landrace_local_adaptation = list(
+        type = "question",
+        question = "Is the material locally adapted?",
+        choices = list(
+          "No" = "do_not_use_for_breeding",
+          "Yes" = "landrace_breeding_relationship"
+        )
+      ),
+
+      landrace_breeding_relationship = list(
+        type = "question",
+        question = "Are you using a relationship matrix?",
+        choices = list(
+          "No" = "landrace_breeding_tgv",
+          "Yes" = "landrace_breeding_env6"
+        )
+      ),
+
+      landrace_breeding_tgv = list(
+        type = "terminal",
+        available = TRUE,
+        model_label = "Main effects model",
+        merit_label = "TGV",
+        radio = "mn_model",
+        radioModel = "none",
+        message = "Recommended model: Main effects model + TGV."
+      ),
+
+      landrace_breeding_env6 = list(
+        type = "question",
+        question = "Do you have at least 6 environments?",
+        choices = list(
+          "No" = "not_enough_data",
+          "Yes" = "set_finlay_wilkinson"
+        )
+      ),
+
+      ## ===== NON-APPLICABLE TERMINALS =====
+      not_enough_data = list(
+        type = "terminal",
+        available = FALSE,
+        model_label = "Not enough data",
+        merit_label = NA_character_,
+        radio = NA_character_,
+        radioModel = NA_character_,
+        message = "Not enough data for this response-to-environment path."
+      ),
+
+      do_not_use_for_breeding = list(
+        type = "terminal",
+        available = FALSE,
+        model_label = "Do not use for breeding",
+        merit_label = NA_character_,
+        radio = NA_character_,
+        radioModel = NA_character_,
+        message = "Recommendation: do not use this landrace material for breeding."
+      )
+    )
+
+    mtaWizard <- reactiveValues(
+      open = FALSE,
+      node = "start",
+      history = character(),
+      model_label = NULL,
+      radio = NULL,
+      terminal = NULL
+    )
+
+    mtaWizardEnterNode <- function(nodeId) {
+      node <- mtaWizardTree[[nodeId]]
+
+      while (!is.null(node) && identical(node$type, "set_model")) {
+        mtaWizard$model_label <- node$model_label
+        mtaWizard$radio <- node$radio
+        nodeId <- node[["next"]]
+        node <- mtaWizardTree[[nodeId]]
+      }
+
+      if (!is.null(node) && identical(node$type, "terminal_merit")) {
+        mtaWizard$terminal <- list(
+          type = "terminal",
+          available = TRUE,
+          model_label = mtaWizard$model_label,
+          merit_label = node$merit_label,
+          radio = mtaWizard$radio,
+          radioModel = node$radioModel,
+          message = paste0(
+            "Recommended model: ",
+            mtaWizard$model_label,
+            " + ",
+            node$merit_label,
+            "."
+          )
+        )
+      } else if (!is.null(node) && identical(node$type, "terminal")) {
+        mtaWizard$terminal <- node
+      } else {
+        mtaWizard$terminal <- NULL
+      }
+
+      mtaWizard$node <- nodeId
+    }
+
+    observeEvent(input$mtaWizardStart, {
+      mtaWizard$open <- TRUE
+      mtaWizard$history <- character()
+      mtaWizard$model_label <- NULL
+      mtaWizard$radio <- NULL
+      mtaWizard$terminal <- NULL
+      mtaWizardEnterNode("start")
+    })
+
+    observeEvent(input$mtaWizardNext, {
+      node <- mtaWizardTree[[mtaWizard$node]]
+      req(node)
+      req(input$mtaWizardAnswer)
+
+      mtaWizard$history <- c(mtaWizard$history, mtaWizard$node)
+      mtaWizardEnterNode(input$mtaWizardAnswer)
+    })
+
+    observeEvent(input$mtaWizardBack, {
+      if (length(mtaWizard$history) > 0) {
+        previous <- tail(mtaWizard$history, 1)
+        mtaWizard$history <- head(mtaWizard$history, -1)
+        mtaWizard$terminal <- NULL
+        mtaWizardEnterNode(previous)
+      }
+    })
+
+    observeEvent(input$mtaWizardReset, {
+      mtaWizard$history <- character()
+      mtaWizard$model_label <- NULL
+      mtaWizard$radio <- NULL
+      mtaWizard$terminal <- NULL
+      mtaWizardEnterNode("start")
+    })
+
+    observeEvent(input$mtaWizardClose, {
+      mtaWizard$open <- FALSE
+    })
+
+    observeEvent(input$mtaWizardApply, {
+      rec <- mtaWizard$terminal
+      req(rec)
+      req(isTRUE(rec$available))
+
+      updateRadioButtons(session, "radio", selected = rec$radio)
+
+      session$onFlushed(function() {
+        updateRadioButtons(session, "radioModel", selected = rec$radioModel)
+      }, once = TRUE)
+
+      showNotification(
+        paste0("Applied: ", rec$message),
+        type = "message"
+      )
+    })
+
+    output$mtaWizardPanel <- renderUI({
+      if (!isTRUE(mtaWizard$open)) return(NULL)
+
+      node <- mtaWizardTree[[mtaWizard$node]]
+      rec <- mtaWizard$terminal
+
+      if (!is.null(rec)) {
+        return(
+          tags$div(
+            style = "background:white;color:#000;padding:12px;border-radius:6px;margin-top:12px;",
+            tags$h4(strong("Recommendation")),
+            tags$p(rec$message),
+            if (!is.null(rec$model_label) && !is.na(rec$model_label)) {
+              tags$p(tags$b("Model: "), rec$model_label)
+            },
+            if (!is.null(rec$merit_label) && !is.na(rec$merit_label)) {
+              tags$p(tags$b("Surrogate of merit: "), rec$merit_label)
+            },
+            tags$div(
+              style = "display:flex;gap:8px;flex-wrap:wrap;",
+              if (isTRUE(rec$available)) {
+                actionButton(ns("mtaWizardApply"), "Apply recommendation", icon = icon("check"))
+              },
+              actionButton(ns("mtaWizardBack"), "Back", icon = icon("arrow-left")),
+              actionButton(ns("mtaWizardReset"), "Start over", icon = icon("rotate-left")),
+              actionButton(ns("mtaWizardClose"), "Close", icon = icon("xmark"))
+            )
+          )
+        )
+      }
+
+      choices <- node$choices
+      choiceValues <- unlist(choices, use.names = FALSE)
+      names(choiceValues) <- names(choices)
+
+      tags$div(
+        style = "background:white;color:#000;padding:12px;border-radius:6px;margin-top:12px;",
+        tags$h4(strong(node$question)),
+        radioButtons(
+          ns("mtaWizardAnswer"),
+          label = NULL,
+          choices = choiceValues,
+          selected = choiceValues[[1]]
+        ),
+        tags$div(
+          style = "display:flex;gap:8px;flex-wrap:wrap;",
+          actionButton(ns("mtaWizardNext"), "Next", icon = icon("arrow-right")),
+          if (length(mtaWizard$history) > 0) {
+            actionButton(ns("mtaWizardBack"), "Back", icon = icon("arrow-left"))
+          },
+          actionButton(ns("mtaWizardReset"), "Start over", icon = icon("rotate-left")),
+          actionButton(ns("mtaWizardClose"), "Close", icon = icon("xmark"))
+        )
+      )
+    })
 
 
     # output$plotDataDependencies <- shiny::renderPlot({ dependencyPlot() })
@@ -579,19 +1266,38 @@ mod_mtaLMMsolveApp_server <- function(id, data){
     observeEvent(input$radio, {
       if (input$radio == "ad_model") {
         updateRadioButtons(session, inputId = "radioModel",
-                           # choices = list(
-                           #   "GTGV" = "genoAD_model",
-                           # ),
+                           choices = list(
+                             "GTGV" = "genoAD_model"
+                           ),
                            selected = "genoAD_model", inline = TRUE)
-      } else {
+      } else if(input$radio == "sca_model"){
         updateRadioButtons(session, inputId = "radioModel",
-                           # choices = list(
-                           #   "TGV"="none",
-                           #   "GTGV" = "genoAD_model",
-                           #   "EBV" = "pedigree_model",
-                           #   "GEBV" = "geno_model"
-                           # ),
-                           selected = isolate(input$radioModel) %||% "none",
+                            choices = list(
+                              "SCA/GCA" = "noneSCA_model",
+                              "gSCA/gGCA" = "genoSCA_model"
+                            ),
+                           selected = "noneSCA_model", inline = TRUE)
+      }else if(input$radio == "gca_model"){
+        updateRadioButtons(session, inputId = "radioModel",
+                           choices = list(
+                             "GCA" = "noneGCA_model",
+                             "gGCA" = "genoGCA_model"
+                           ),
+                           selected = "noneGCA_model", inline = TRUE)
+      } else{
+        ch <- list(
+          "TGV" = "none",
+          "GTGV" = "genoAD_model",
+          "EBV" = "pedigree_model",
+          "GEBV" = "geno_model"
+        )
+
+        current <- isolate(input$radioModel)
+        sel <- if (!is.null(current) && current %in% ch) current else "none"
+
+        updateRadioButtons(session, inputId = "radioModel",
+                           choices = ch,
+                           selected = sel,
                            inline = TRUE)
       }
     })
@@ -606,8 +1312,10 @@ mod_mtaLMMsolveApp_server <- function(id, data){
       dtMta <- dtMta[which(dtMta$analysisId %in% input$version2Mta),]
       envs <- unique(dtMta[,"environment"])
       envsDg <- envs
-      if ( input$radio == "cs_model" | input$radio == "fw_model" | input$radio == "ad_model") {
+      if ( input$radio == "cs_model" | input$radio == "fw_model" | input$radio == "ad_model" | input$radio == "gca_model") {
         n <- 2
+      }else if( input$radio == "sca_model" ){
+        n <- 3
       }else if( input$radio == "mndg_model" ){
         n <- length(envsDg) + 1
       }else if( input$radio == "dg_model" ){
@@ -635,7 +1343,7 @@ mod_mtaLMMsolveApp_server <- function(id, data){
       choices <- setdiff(colnames(mydata), c("predictedValue","stdError","reliability","analysisId","module") )
 
       # If model is A+D, add "inbreeding" to choices
-      if (input$radio == "ad_model") {
+      if (input$radio == "ad_model" | input$radio == "sca_model") {
         choices <- unique(c("inbreeding", choices))
       }
 
@@ -657,7 +1365,7 @@ mod_mtaLMMsolveApp_server <- function(id, data){
           defaultFixed <- character()
           if (i == 1) {
             defaultFixed <- "environment"
-          } else if (i == 2 && input$radio == "ad_model") {
+          } else if (i == 2 && (input$radio == "ad_model" |input$radio == "sca_model")) {
             defaultFixed <- "inbreeding"
           }
 
@@ -690,6 +1398,7 @@ mod_mtaLMMsolveApp_server <- function(id, data){
       WeatherRow <- as.data.frame(cgiarPipeline::summaryWeather(dtMta, wide=TRUE)); WeatherRow$environment <- rownames(WeatherRow)
       mydata <- merge(mydata, WeatherRow, by="environment", all.x = TRUE)
       choices <- c( setdiff( setdiff(colnames(mydata),"designation"), c("predictedValue","stdError","reliability","analysisId","module") ), "designation")
+      choices <- unique(c(choices, "envIndex"))
       fwvars <- colnames(WeatherRow)[grep("envIndex",colnames(WeatherRow))]
       # selected
       envs <- unique(mydata[,"environment"])
@@ -729,7 +1438,7 @@ mod_mtaLMMsolveApp_server <- function(id, data){
             session$ns(paste0('leftSidesRandom',i)),
             label = ifelse(i==1, "Random Effects",""),
             choices = choices, multiple = TRUE,
-            selected = if(i==1){"designation"}else if(i==2){rev(c(fwvars[1], "designation"))}else{"designation"}
+            selected = if(i==1){"designation"}else if(i==2){rev(c("envIndex", "designation"))}else{"designation"}
           )
         })
       }else if(input$radio == "ad_model"){ # A+D main effect
@@ -739,6 +1448,44 @@ mod_mtaLMMsolveApp_server <- function(id, data){
             label = ifelse(i == 1, "Random Effects", ""),
             choices = choices, multiple = TRUE,
             selected = "designation"
+          )
+        })
+      }else if(input$radio == "sca_model"){
+        needed   <- c("designation", "mother", "father")
+        missing  <- setdiff(needed, choices)
+
+        validate(
+          need(
+            length(missing) == 0,
+            "To use the STA/GCA model you must have mother and father columns from pedigree data",
+          )
+        )
+
+        lapply(1:input$nTermsRandom, function(i) {
+          selectInput(
+            session$ns(paste0('leftSidesRandom', i)),
+            label = ifelse(i == 1, "Random Effects", ""),
+            choices = choices, multiple = TRUE,
+            selected = if(i==1){"designation"}else if(i==2){"mother"}else{"father"}
+          )
+        })
+      }else if(input$radio == "gca_model"){
+        needed   <- c("mother", "father")
+        missing  <- setdiff(needed, choices)
+
+        validate(
+          need(
+            length(missing) == 0,
+            "To use the GCA model you must have mother and father columns from pedigree data",
+          )
+        )
+
+        lapply(1:input$nTermsRandom, function(i) {
+          selectInput(
+            session$ns(paste0('leftSidesRandom', i)),
+            label = ifelse(i == 1, "Random Effects", ""),
+            choices = choices, multiple = TRUE,
+            selected = if(i==1){"mother"}else{"father"}
           )
         })
       }else { # main model specified
@@ -755,73 +1502,108 @@ mod_mtaLMMsolveApp_server <- function(id, data){
     })
     # right-side equation (explanatory covariates)
     output$rightSidesRandom <- renderUI({
-      req(data())
-      req(input$version2Mta)
-      req(input$trait2Mta)
-      req(input$nTermsRandom)
-      mydata <- data()$predictions #
-      mydata <- mydata[which(mydata$analysisId %in% input$version2Mta),]
-      choices <- c(  "none", "none.", "none..", "none...", setdiff(names(data()$data), c("qtl","genodir","pheno") ), unique(mydata$trait) )
-      if("geno" %in% choices){choices <- c( cgiarBase::replaceValues(choices,"geno","genoA"),"genoAD","genoD")}
-      envs <- unique(mydata[,"environment"])
-      envsDg <- envs
-      if(input$radioModel == "geno_model"){useMod1 <- "none"; useMod2 <- "genoA"}else if(input$radioModel == "pedigree_model"){useMod1 <- "none"; useMod2 <- "pedigree"}else if(input$radioModel == "none"){useMod1 <- "none"; useMod2 <- "none."}else if(input$radioModel == "genoAD_model"){useMod1 <- "none"; useMod2 <- "genoAD"}
-      if (input$radio == "cs_model") { # CS model
-        lapply(1:input$nTermsRandom, function(i) {
-          selectInput(
-            inputId=session$ns(paste0('rightSidesRandom',i)),
-            label = ifelse(i==1, "Covariance of random effect based on:",""),
-            choices = choices, multiple = TRUE,
-            selected = if(i==1){useMod2}else if(i==2){rev(c(useMod1,useMod2))}else{useMod2}
-          )
-        })
-      }else if( input$radio == "mndg_model" ){
-        lapply(1:input$nTermsRandom, function(i) {
-          selectInput(
-            inputId=session$ns(paste0('rightSidesRandom',i)),
-            label = ifelse(i==1, "Covariance of random effect based on:",""),
-            choices = choices, multiple = TRUE,
-            selected =if( i > length(envsDg) ){useMod2 }else{c( useMod2, useMod1 )}
-          )
-        })
-      }else if(input$radio == "fw_model"){
-        lapply(1:input$nTermsRandom, function(i) {
-          selectInput(
-            session$ns(paste0('rightSidesRandom',i)),
-            label = ifelse(i==1, "Covariance of random effect based on:",""),
-            choices = choices, multiple = TRUE,
-            selected = if(i==1){useMod2}else if(i==2){c(useMod2, useMod1)}else{useMod1}
-          )
-        })
-      }else if( input$radio == "dg_model" ){
-        lapply(1:input$nTermsRandom, function(i) {
-          selectInput(
-            inputId=session$ns(paste0('rightSidesRandom',i)),
-            label = ifelse(i==1, "Covariance of random effect based on:",""),
-            choices = choices, multiple = TRUE,
-            selected = c(useMod2,useMod1)
-          )
-        })
-      }else if( input$radio == "ad_model" ){
-        lapply(1:input$nTermsRandom, function(i) {
-          selectInput(
-            inputId = session$ns(paste0('rightSidesRandom', i)),
-            label = ifelse(i == 1, "Covariance of random effect based on:", ""),
-            choices = choices, multiple = TRUE,
-            selected = ifelse(i == 1,"genoA","genoD")
-          )
-        })
-      }else { # main model specified
-        lapply(1:input$nTermsRandom, function(i) {
-          selectInput(
-            inputId=session$ns(paste0('rightSidesRandom',i)),
-            label = ifelse(i==1, "Covariance of random effect based on:",""),
-            choices = choices, multiple = TRUE,
-            selected = useMod2
-          )
-        })
-      }
+      tryCatch({
+        req(data())
+        req(input$version2Mta)
+        req(input$trait2Mta)
+        req(input$nTermsRandom)
+        mydata <- data()$predictions #
+        mydata <- mydata[which(mydata$analysisId %in% input$version2Mta),]
+        choices <- c(  "none", "none.", "none..", "none...", setdiff(names(data()$data), c("qtl","genodir","pheno") ), unique(mydata$trait) )
+        if("geno" %in% choices){choices <- c( cgiarBase::replaceValues(choices,"geno","genoA"),"genoAD","genoD")}
+        envs <- unique(mydata[,"environment"])
+        envsDg <- envs
+        if(input$radioModel == "geno_model"){
+          useMod1 <- "none"
+          useMod2 <- "genoA"
+        }else if(input$radioModel == "pedigree_model"){
+          useMod1 <- "none"
+          useMod2 <- "pedigree"
+        }else if(input$radioModel == "none"){
+          useMod1 <- "none"
+          useMod2 <- "none."
+        }else if(input$radioModel == "genoAD_model"){
+          useMod1 <- "none"
+          useMod2 <- "genoAD"
+        }
 
+        if (input$radio == "cs_model") { # CS model
+          lapply(1:input$nTermsRandom, function(i) {
+            selectInput(
+              inputId=session$ns(paste0('rightSidesRandom',i)),
+              label = ifelse(i==1, "Covariance of random effect based on:",""),
+              choices = choices, multiple = TRUE,
+              selected = if(i==1){useMod2}else if(i==2){rev(c(useMod1,useMod2))}else{useMod2}
+            )
+          })
+        }else if( input$radio == "mndg_model" ){
+          lapply(1:input$nTermsRandom, function(i) {
+            selectInput(
+              inputId=session$ns(paste0('rightSidesRandom',i)),
+              label = ifelse(i==1, "Covariance of random effect based on:",""),
+              choices = choices, multiple = TRUE,
+              selected =if( i > length(envsDg) ){useMod2 }else{c( useMod2, useMod1 )}
+            )
+          })
+        }else if(input$radio == "fw_model"){
+          lapply(1:input$nTermsRandom, function(i) {
+            selectInput(
+              session$ns(paste0('rightSidesRandom',i)),
+              label = ifelse(i==1, "Covariance of random effect based on:",""),
+              choices = choices, multiple = TRUE,
+              selected = if(i==1){useMod2}else if(i==2){c(useMod2, useMod1)}else{useMod1}
+            )
+          })
+        }else if( input$radio == "dg_model" ){
+          lapply(1:input$nTermsRandom, function(i) {
+            selectInput(
+              inputId=session$ns(paste0('rightSidesRandom',i)),
+              label = ifelse(i==1, "Covariance of random effect based on:",""),
+              choices = choices, multiple = TRUE,
+              selected = c(useMod2,useMod1)
+            )
+          })
+        }else if( input$radio == "ad_model" ){
+          lapply(1:input$nTermsRandom, function(i) {
+            selectInput(
+              inputId = session$ns(paste0('rightSidesRandom', i)),
+              label = ifelse(i == 1, "Covariance of random effect based on:", ""),
+              choices = choices, multiple = TRUE,
+              selected = ifelse(i == 1,"genoA","genoD")
+            )
+          })
+        }else if( input$radio == "sca_model" ){
+          lapply(1:input$nTermsRandom, function(i) {
+            selectInput(
+              inputId = session$ns(paste0('rightSidesRandom', i)),
+              label = ifelse(i == 1, "Covariance of random effect based on:", ""),
+              choices = choices, multiple = TRUE,
+              selected = ifelse(i == 1, ifelse(input$radioModel == "noneSCA_model","none","genoD"),
+                                ifelse(input$radioModel == "noneSCA_model","none","genoA"))
+            )
+          })
+        }else if( input$radio == "gca_model" ){
+          lapply(1:input$nTermsRandom, function(i) {
+            selectInput(
+              inputId = session$ns(paste0('rightSidesRandom', i)),
+              label = ifelse(i == 1, "Covariance of random effect based on:", ""),
+              choices = choices, multiple = TRUE,
+              selected = ifelse(input$radioModel == "noneGCA_model","none","genoA")
+            )
+          })
+        }else { # main model specified
+          lapply(1:input$nTermsRandom, function(i) {
+            selectInput(
+              inputId=session$ns(paste0('rightSidesRandom',i)),
+              label = ifelse(i==1, "Covariance of random effect based on:",""),
+              choices = choices, multiple = TRUE,
+              selected = useMod2
+            )
+          })
+        }
+      }, error = function(e) {
+        NULL
+      })
     })
 
     # n pricipal components for explanatory covariates
@@ -832,7 +1614,7 @@ mod_mtaLMMsolveApp_server <- function(id, data){
 
       mydata <- data()$predictions #
       mydata <- mydata[which(mydata$analysisId %in% input$version2Mta),]
-      choices <- c( setdiff(names(data()$data), c("qtl","genodir","pheno") ), unique(mydata$trait))
+      choices <- c( setdiff(names(data()$data), c("qtl","genodir","pheno","geno_imp") ), unique(mydata$trait))
       # if("geno" %in% choices){choices <- c( cgiarBase::replaceValues(choices,"geno","genoA"),"genoAD")}
 
       lapply(1:length(choices), function(i) {
@@ -840,7 +1622,7 @@ mod_mtaLMMsolveApp_server <- function(id, data){
           numericInput(
             session$ns(paste0('nPC',i)),
             label = paste0("nPC (",choices[i],")"),
-            value = ifelse(choices[i]%in%c("geno","pedigree"),-1,0), # -1 is to subset to only individuals present
+            value = 0, #ifelse(choices[i]%in%c("geno","pedigree"),-1,0), # -1 is to subset to only individuals present
             min = -1, max = Inf, step = 1
           ),
           style = "display: inline-block;"
@@ -887,6 +1669,23 @@ mod_mtaLMMsolveApp_server <- function(id, data){
         return(values)
       }
     })
+
+    observe({
+      covars <- inputFormulaCovars()
+      req(covars)
+
+      if(any("genoA" %in% inputFormulaCovars())){
+        shinyjs::hide("subPed")
+        shinyjs::show("subGeno")
+      } else if("pedigree" %in% inputFormulaCovars()){
+        shinyjs::show("subPed")
+        shinyjs::hide("subGeno")
+      } else{
+        shinyjs::hide("subPed")
+        shinyjs::hide("subGeno")
+      }
+    })
+
     # inputFormula summarizing the PCs
     inputFormulaPCs = reactive({
       req(data());  req(input$version2Mta);  req(input$trait2Mta);
@@ -894,7 +1693,7 @@ mod_mtaLMMsolveApp_server <- function(id, data){
       mx <- data()
       mydata <- mx$predictions #
       mydata <- mydata[which(mydata$analysisId %in% input$version2Mta),]
-      choices <- c( setdiff(names(mx$data), c("qtl","genodir","pheno") ), unique(mydata$trait))
+      choices <- c( setdiff(names(mx$data), c("qtl","genodir","pheno","geno_imp") ), unique(mydata$trait))
       # if("geno" %in% choices){choices <- c( cgiarBase::replaceValues(choices,"geno","genoA"),"genoD")}
 
       if (length(input$trait2Mta) != 0) {
@@ -1304,14 +2103,16 @@ mod_mtaLMMsolveApp_server <- function(id, data){
         )
         if(!inherits(result1,"try-error")) {
           result <- try(
-            cgiarPipeline::metLMMsolver(
+              cgiarPipeline::metLMMsolver(
               phenoDTfile= dtMta, analysisId=input$version2Mta, analysisIdGeno=markerVersionToUse,
               fixedTerm= inputFormulaFixed(),  randomTerm=inputFormulaRandom(), expCovariates=inputFormulaCovars(),
-              envsToInclude=myEnvsTI, trait= input$trait2Mta, traitFamily=myFamily, useWeights=input$useWeights,
-              calculateSE=input$calcSE, heritLB= as.numeric(unlist(strsplit(input$heritLBMet,","))),
+              envsToInclude=myEnvsTI, trait= input$trait2Mta, traitFamily=myFamily,
+              useWeights=input$useWeights,estHybrids = as.logical(input$estHybrids),
+              calculateSE=as.logical(input$calcSE), heritLB= as.numeric(unlist(strsplit(input$heritLBMet,","))),
               heritUB= as.numeric(unlist(strsplit(input$heritUBMet,","))),
               meanLB = as.numeric(unlist(strsplit(input$meanLBMet,","))),
               meanUB = as.numeric(unlist(strsplit(input$meanUBMet,","))), nPC=inputFormulaPCs(),   # subsetVariable=NULL, subsetVariableLevels=NULL,
+              subsetGeno = input$subGeno, subsetPed =input$subPed,
               maxIters=input$maxitMet,  verbose=TRUE
             ),
             silent=TRUE
@@ -1443,6 +2244,78 @@ mod_mtaLMMsolveApp_server <- function(id, data){
       outMta()
     })
 
+    output$ebsReportButton <- renderUI({
+      query <- parseQueryString(session$clientData$url_search)
+
+      # check if task id exists, and verify (sanitize) this md5 parameter ;-)
+      if (is.character(query$task) &&
+          is.character(query$domain) &&
+          grepl("^[a-f0-9]{32}$", query$task) &&
+          grepl("^[a-z_0-9\\.\\-]+$", query$domain)) {
+
+        s3 <- paws::s3()
+
+        bucket_name <- "ebs-bioflow"
+        s3_object_path <- paste0(query$domain, "/", query$task, ".RData")
+
+        tryCatch({
+          s3_object_head <- s3$head_object(Bucket = bucket_name, Key = s3_object_path)
+          actionButton(ns("ebsMtaReport"), "Submit Results to EBS")
+        }, error = function(e) {
+          # no such file on the S3 bucket clipboard
+          NULL
+        })
+      } else {
+        # parameters does not match the expected format
+        NULL
+      }
+    })
+
+    observeEvent(input$ebsMtaReport, {
+      req(data())
+
+      query <- parseQueryString(session$clientData$url_search)
+
+      # check if task id exists, and verify (sanitize) this md5 parameter ;-)
+      if (is.character(query$task) &&
+          is.character(query$domain) &&
+          grepl("^[a-f0-9]{32}$", query$task) &&
+          grepl("^[a-z_0-9\\.\\-]+$", query$domain)) {
+
+        shinybusy::show_modal_spinner('fading-circle', text = 'Processing...')
+
+        result <- data()
+        s3 <- paws::s3()
+
+        # set S3 bucket parameters
+        bucket_name <- "ebs-bioflow"
+        s3_object_path <- paste0(query$domain, "/", query$task, ".RData")
+
+        tryCatch({
+          # update S3 metadata
+          s3_object_head <- s3$head_object(Bucket = bucket_name, Key = s3_object_path)
+          s3_object_metadata <- s3_object_head$Metadata
+          s3_object_metadata[["Upload-Origin"]] <- "bioflow"
+
+          temp_file <- paste0(tempdir(), "/", query$task, ".RData")
+          save(result, file = temp_file)
+
+          # upload data object to S3 bucket
+          s3$put_object(
+            Body = temp_file,
+            Bucket = bucket_name,
+            Key = s3_object_path,
+            Metadata = s3_object_metadata
+          )
+
+          shinybusy::remove_modal_spinner()
+          shinyalert::shinyalert(title = "Success!", text = "Analysis results successfully submitted to EBS.", type = "success")
+        }, error = function(e) {
+          shinybusy::remove_modal_spinner()
+          shinyalert::shinyalert(title = "Failed!", text = e$message, type = "error")
+        })
+      }
+    })
 
 
 

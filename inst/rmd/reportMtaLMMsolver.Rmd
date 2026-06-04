@@ -123,12 +123,14 @@ if (is.null(result)){
   predSplitSplitWide <- lapply(predSplitSplit, function(y){lapply(y,function(x){
     tableForm <- table(x$environment)
     ninds <- tableForm; nEnvs <- length(tableForm)
-    idsmock <- unlist(apply(data.frame(as.vector(ninds)),1,function(z){paste0("id",1:z)}))
     x <- x[with(x, order(environment, designation)), ]
-    x$idsmock <- as.vector(idsmock)
+    
+    x$idsmock <- gsub(paste(unique(modelingFieldsIncludedInMta$environment), collapse = "|"), "", x$designation)
+    x$idsmock <- gsub("^:|:$", "", x$idsmock)
+    
     wide0 <- reshape(x[,c("environment","predictedValue","idsmock")], direction = "wide", idvar = "idsmock",
                      timevar = "environment", v.names = "predictedValue", sep= "_")
-    wide0 <- wide0[,-1,drop=FALSE]; rownames(wide0) <- x$designation[1:max(ninds)]
+    rownames(wide0) <- wide0$idsmock; wide0 <- wide0[,-1,drop=FALSE]
     wide0 <- wide0[,apply(wide0,2,enhancer::propMissing) != 1, drop=FALSE]
     colnames(wide0) <- gsub("predictedValue_","",colnames(wide0))
     return(wide0)
@@ -137,7 +139,11 @@ if (is.null(result)){
   predSplitSplitWide2 <- lapply(predSplitSplit2, function(y){ # for each environment do
     lapply(y,function(x){
       x <- x[with(x, order(trait, designation)), ]
-      wide0 <- reshape(x[,c("trait","predictedValue","designation")], direction = "wide", idvar = "designation",
+      
+      x$idsmock <- gsub("^:|:$", "", 
+                      gsub(paste(unique(modelingFieldsIncludedInMta$environment), collapse = "|"), "", x$designation))
+      
+      wide0 <- reshape(x[,c("trait","predictedValue","idsmock")], direction = "wide", idvar = "idsmock",
                        timevar = "trait", v.names = "predictedValue", sep= "_")
       rownamesWide0 <- wide0[,1]
       wide0 <- wide0[,-1,drop=FALSE]; 
@@ -153,27 +159,29 @@ if (is.null(result)){
   envirTypes <- unique(pred$environment)
   # check names
   entryTypePresent <- table((unique(pred[,c("designation","entryType")]))$entryType)
-  check1 <- which(entryTypePresent < 200)
-  check2 <- grep("check|chck|bnchmark|benchmark|chek|chec", names(entryTypePresent), ignore.case = TRUE, value=FALSE)
-  checksFound <- intersect(check1,check2)
+  checksFound <- grep("^(?!.*#).*(check|chck|bnchmark|benchmark|chek|chec).*", names(entryTypePresent),ignore.case = TRUE,perl = TRUE,value = FALSE)
   labelChecks <- names(entryTypePresent)[checksFound]
-  nameOfChecks <- unique(pred[ which(pred$entryType %in% labelChecks) , "designation"])
   
+  nameOfChecks <- pred$designation[(pred$entryType %in% labelChecks) & (pred$effectType == "designation")]
+
   idSta <- modeling[which(modeling$trait == "inputObject" & modeling$analysisId == idMta),"value"]
   envs2 <- unique(result$data$pheno[,result$metadata$pheno[which(result$metadata$pheno$parameter == "environment"), "value"]])
   traits2 <- unique(result$metadata$pheno[which(result$metadata$pheno$parameter == "trait"), "value"])
-    gxeList <- list("gxeCS" = c("environment_designation", "designation_environment", 
-                              "environment:designation", "designation:environment"),
-                  "gxeDMD" = c(paste0(envs2,"_designation"), paste0("designation_",envs2),
-                               paste0(envs2,":designation"), paste0("designation:",envs2)),
-                  "gxeFW" = c(paste0("value_",traits2,"envIndex_designation"),paste0("designation_value_",traits2,"envIndex"),
-                              paste0("value_",traits2,"envIndex:designation"),paste0("designation:value_",traits2,"envIndex")))
+    gxeList <- list(
+  "gxeCS" = c("environment_designation", "designation_environment", 
+              "environment:designation", "designation:environment"),
+  "gxeDMD" = c(paste0(envs2,"_designation"), paste0("designation_",envs2),
+               paste0(envs2,":designation"), paste0("designation:",envs2)),
+  "gxeFW"  = "fw_slope"
+)
   
   gxeModelNum <- 0
   for(i in 1:3){
-    if(any(effectTypes %in% gxeList[[i]])){
+    pat <- paste(gxeList[[i]], collapse = "|")  # union of all patterns for this i
+    if (any(grepl(pat, effectTypes))) {
       gxeModelNum <- i
-    }
+      break
+      }
   }
   
   if(gxeModelNum == 2){
@@ -886,7 +894,7 @@ if (is.null(result)){
         cat("\n\n####", iTrait2, "{.tabset .tabset-pills}       \n\n")
         
         # wide2 <- predSplitSplitWide[[iType2]][[iTrait2]] 
-        wide2 <- predSplitSplitWide[[which(names(predSplitSplitWide) %in% gxeList[[1]])]][[iTrait2]] 
+        wide2 <- predSplitSplitWide[[which(names(predSplitSplitWide) %in% gxeList[[1]])]][[iTrait2]]
         
         if(!is.null(wide2)){
           if(nrow(wide2) > 1){
@@ -1059,7 +1067,7 @@ if (is.null(result)){
       
     }
   } else{
-    cat("No interaction present. Skipping correlation plot.")
+    cat("No designation x environment interaction present. Skipping correlation plot.")
   }
 }
 ```
@@ -1080,7 +1088,8 @@ if (is.null(result)){
   if("params" %in% ls()){ # we will download the document
     shinyjs::hide()
   }else{
-    if(any(c("environment_designation", "designation_environment") %in% effectTypes2)){
+    if(any(c("environment_designation", "designation_environment",
+             "environment:designation", "designation:environment") %in% effectTypes2)){
       inputPanel(
         selectInput(ns("traitBiplot"),
                     label = "Trait:",
@@ -1401,10 +1410,10 @@ if (is.null(result)){
         }) # end of plotly
       }
     } else{
-      cat("No interaction present. Skipping biplot.")
+      cat("No designation x environment interaction present. Skipping biplot.")
     }
   } else{
-    cat("No interaction present. Skipping biplot.")
+    cat("No designation x environment interaction present. Skipping biplot.")
   }
 }
 ```
@@ -1677,7 +1686,17 @@ if (is.null(result)){
   pred.mta.wide2 <- pred.mta.wide[which(pred.mta.wide$effectType == "designation"),]
   
   coalesce_by_column <- function(x) {
-    return(dplyr::coalesce(!!! as.list(x)))
+  args <- as.list(x)
+    
+  # Drop NULLs and length-0 elements 
+  keep <- vapply(args, function(z) !(is.null(z) || length(z) == 0L), logical(1))
+  args <- args[keep]
+    
+  #NULL/empty define as NA 
+  if (length(args) == 0L) return(NA_real_)
+    
+  #Coalesce values
+  dplyr::coalesce(!!!args)
   }
   
   pred.mta.wide2_trait <- pred.mta.wide2 %>% select(c("designation", all_of(traits))) %>%

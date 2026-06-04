@@ -28,13 +28,12 @@ mod_getDataWeather_ui <- function(id){
                  tabPanel(div("2. Set coordinates" ),
                           tags$span(id = ns('apiOptionsInput'),
                                     tabPanel("Specify coordinates", icon = icon("magnifying-glass-chart"),
-                                             br(),
                                              tags$span(id = ns('weather_message_holder'),
                                                        uiOutput(ns("warningMessage")),
                                              ),
 
                                              tags$span(id = ns('weather_file_holder'),
-                                                       column(width = 12, style = "background-color:green; color: #FFFFFF",
+                                                       column(width = 12, style = "background-color:grey; color: #FFFFFF",
                                                               column(width = 2, p(strong("Environment")) ),
                                                               column(width = 2, p(strong("Latitude")) ),
                                                               column(width = 2, p(strong("Longitude")) ),
@@ -42,7 +41,7 @@ mod_getDataWeather_ui <- function(id){
                                                               column(width = 2, p(strong("Harvesting Date")) ),
                                                               column(width = 2, p(strong("Extraction interval")) ),
                                                        ),
-                                                       column(width = 12, style = "background-color:green; color: #FFFFFF",
+                                                       column(width = 12, style = "background-color:grey; color: #FFFFFF",
                                                               column(width = 2, uiOutput(ns("environment")) ),
                                                               column(width = 2, uiOutput(ns("latitude")) ),
                                                               column(width = 2, uiOutput(ns("longitude")) ),
@@ -52,11 +51,13 @@ mod_getDataWeather_ui <- function(id){
                                                                      selectInput(ns("temporal"),label=NULL, choices = list("hourly","daily","monthly"), selected = "daily"  ),
                                                               ),
                                                        ),
-                                                       shinydashboard::box(status="success",width = 12, solidHeader = TRUE,
-                                                                           column(width=12, style = "height:410px; overflow-y: scroll;overflow-x: scroll;",
-                                                                                  p(span("Preview of coordinates selected for extraction.", style="color:black")),
-                                                                                  plotly::plotlyOutput(ns("plotMeteo")),
-                                                                           ),
+                                                       column(width = 12, style = "background-color:grey; color: #FFFFFF",
+                                                              HTML("&nbsp;")),
+                                                       HTML("&nbsp;"),
+                                                       shinydashboard::box(status="success",width = 12, solidHeader = TRUE, collapsible = TRUE, collapsed = FALSE,# style = "height:410px; overflow-y: scroll;overflow-x: scroll;",
+                                                                           id = ns('preview_data_map'),
+                                                                           title = "Preview of coordinates selected for extraction (click on the '+' symbol on the right to view)",
+                                                                           plotly::plotlyOutput(ns("plotMeteo"))
                                                        )
                                              ),
                                     ),
@@ -84,37 +85,37 @@ mod_getDataWeather_ui <- function(id){
                                                                                                 choices = c('Dot' = '.', 'Comma' = ',')),
                                            ),
                                      ),
-                                     column(width=12,
-                                            shinydashboard::box(width = 12,  status = 'success', solidHeader = FALSE,
-                                                                DT::DTOutput(ns('preview_weather2')),
-                                            ),
-                                     ),
+                                    tags$br(),
+                                    shinydashboard::box(status="success",width = 12, solidHeader = TRUE, collapsible = TRUE, collapsed = FALSE,
+                                                        id = ns('preview_data_weather2'),
+                                                        title = "Preview of uploaded data (click on the '+' symbol on the right to view)",
+                                                        DT::DTOutput(ns('preview_weather2'))
+                                    ),
                            ), # end of file upload options
                   ),
                   tabPanel(div("3. Retrieve/Match data" ),
                            tags$span(id = ns('apiOptionsRetrieve'),
-                                     tags$br(),
                                      actionButton(ns("rungetWeather"), "Extract", icon = icon("play-circle")),
                                      textOutput(ns("outgetWeather")),
                            ),
                            tags$span(id = ns('fileOptionsRetrieve'),
-
                                      column(width=12,
                                             shinydashboard::box(width = 12, status = 'success', solidHeader = FALSE,
                                                                 hr(),
                                                                 uiOutput(ns('weather_map')),
                                             ),
                                      ),
-                                     column(width=12,
-                                            shinydashboard::box(width = 12,  status = 'success', solidHeader = FALSE,
-                                                                DT::DTOutput(ns('preview_weather')),
-                                            ),
-                                     ),
-
+                           ),
+                           tags$br(),
+                           shinydashboard::box(width = 12,  status = 'success', solidHeader = TRUE, collapsible = TRUE, collapsed = TRUE,
+                                               id = ns('preview_data_weather'),
+                                               title = "Preview of uploaded data (click on the '+' symbol on the right to view)",
+                                               # hr(),
+                                               DT::DTOutput(ns('preview_weather')),
+                                               plotly::plotlyOutput(ns("plotMeteo2"))
                            ),
                   ),
                   tabPanel(div("4. Check status" ),
-                           tags$br(),
                            uiOutput(ns("warningMessage2")),
                   ),
     ),
@@ -130,20 +131,26 @@ mod_getDataWeather_server <- function(id, map=NULL, data = NULL, res_auth=NULL){
     ns <- session$ns
 
     observeEvent(
-      input$weather_input,
-      if(length(input$weather_input) > 0){ # added
-        if (input$weather_input == 'weatherfile') {
-          golem::invoke_js('showid', ns('fileOptionsInput'))
-          golem::invoke_js('hideid', ns('apiOptionsInput'))
+      input$weather_input,{
+        temp <- data()
+        temp$data$weather <- NULL
+        temp$metadata$weather <- NULL
+        data(temp)
 
-          golem::invoke_js('showid', ns('fileOptionsRetrieve'))
-          golem::invoke_js('hideid', ns('apiOptionsRetrieve'))
-        } else if (input$weather_input == 'weatherapi') {
-          golem::invoke_js('showid', ns('apiOptionsInput'))
-          golem::invoke_js('hideid', ns('fileOptionsInput'))
+        if(length(input$weather_input) > 0){ # added
+          if (input$weather_input == 'weatherfile') {
+            golem::invoke_js('showid', ns('fileOptionsInput'))
+            golem::invoke_js('hideid', ns('apiOptionsInput'))
 
-          golem::invoke_js('showid', ns('apiOptionsRetrieve'))
-          golem::invoke_js('hideid', ns('fileOptionsRetrieve'))
+            golem::invoke_js('showid', ns('fileOptionsRetrieve'))
+            golem::invoke_js('hideid', ns('apiOptionsRetrieve'))
+          } else if (input$weather_input == 'weatherapi') {
+            golem::invoke_js('showid', ns('apiOptionsInput'))
+            golem::invoke_js('hideid', ns('fileOptionsInput'))
+
+            golem::invoke_js('showid', ns('apiOptionsRetrieve'))
+            golem::invoke_js('hideid', ns('fileOptionsRetrieve'))
+          }
         }
       }
     )
@@ -161,27 +168,42 @@ mod_getDataWeather_server <- function(id, map=NULL, data = NULL, res_auth=NULL){
         }else{
           golem::invoke_js('hideid', ns('weather_file_holder'))
           golem::invoke_js('showid', ns('weather_message_holder'))
-          HTML( as.character(div(style="color: orange; font-size: 20px;", "Please make sure that you have defined the 'environment' column in 'Data Retrieval' tab for Phenotypes.")) )
+          HTML( as.character(div(style="color: red; font-size: 20px;", "Please make sure that you have defined the 'environment' column in 'Data Retrieval' tab for Phenotypes.")) )
         }
       }
     )
 
     output$warningMessage2 <- renderUI(
-      if(!is.null(data()$data$weather)){
-        HTML( as.character(div(style="color: green; font-size: 20px;", "Data is complete, you can proceed to use the other modules.")) )
-      }else{
-        if(is.null(data())){
+      if(is.null(data())){
+        HTML( as.character(div(style="color: red; font-size: 20px;", "Please retrieve or load your phenotypic data first to identify the environments.")) )
+      } else{ # data is there
+        if(is.null(data()$data$pheno)){
           HTML( as.character(div(style="color: red; font-size: 20px;", "Please retrieve or load your phenotypic data first to identify the environments.")) )
-        }else{ # data is there
-          mappedColumns <- length(which(c("environment") %in% data()$metadata$pheno$parameter))
-          if(mappedColumns == 1){
-            HTML( as.character(div(style="color: gold; font-size: 20px;", "Please specify the coordinates and retrieve weather data.")) )
-          }else{
-            HTML( as.character(div(style="color: orange; font-size: 20px;", "Please make sure that you have defined the 'environment' column in 'Data Retrieval' tab for Phenotypes.")) )
-          }
+        } else{
+          if(!is.null(data()$data$weather)){
+            if(!is.null(data()$metadata$weather)){
+              if("environment" %in% data()$metadata$weather$parameter){
+                envCol <- data()$metadata$weather[which(data()$metadata$weather$parameter == 'environment'), 'value']
+                if(!setequal(unique(data()$data$weather[, envCol]),
+                             unique(data()$data$pheno$environment))){
+                  HTML( as.character(div(style="color: red; font-size: 20px;", "Please make sure that your 'environment' column from both phenotypic and weather data matches.")) )
+                } else{
+                  if(all(c("latitude", "longitude", "trait") %in% data()$metadata$weather$parameter)){
+                    HTML( as.character(div(style="color: green; font-size: 20px;", "Data is complete, you can proceed to use the other modules.")) )
+                  } else{
+                    HTML( as.character(div(style="color: red; font-size: 20px;", "Please specify the coordinates and retrieve weather data.")) )
+                  }
+                }
+              } else{
+                HTML( as.character(div(style="color: red; font-size: 20px;", "Please specify the 'environment' column and retrieve weather data.")) )
+              }
+            } else{
+              HTML( as.character(div(style="color: red; font-size: 20px;", "Please map/match your columns.")) )
+            }
+          } else{
+            HTML( as.character(div(style="color: red; font-size: 20px;", "Please retrieve or load your data using the 'Data' tab. ")) )}
         }
       }
-
     )
 
     #####################################################
@@ -209,13 +231,20 @@ mod_getDataWeather_server <- function(id, map=NULL, data = NULL, res_auth=NULL){
       paramsPheno <- data()$metadata$pheno
       colnames(dtProv) <- cgiarBase::replaceValues(colnames(dtProv), Search = paramsPheno$value, Replace = paramsPheno$parameter )
       envCol <- paramsPheno[which(paramsPheno$parameter == "environment"),"value"]
+      
       if(length(envCol) > 0){
-        fieldNames <- as.character(unique(dtProv[,"environment"]))
+        nenv<-length(unique(dtProv[,"environment"]))
+        if("latitude" %in% colnames(dtProv)){
+          latCol <- dtProv[,c("environment","latitude")] %>% dplyr::distinct(environment, .keep_all = TRUE)
+          fieldNames <- as.character(latCol$latitude)
+        }else{
+          fieldNames <- rep(0,nenv)
+        }
         lapply(1:length(fieldNames), function(i) {
           tags$div(id = "inline",  numericInput(
             session$ns(paste0('latitude',i)),
             NULL,
-            value = 0
+            value = fieldNames[i],
           ))
         })
       }
@@ -226,13 +255,20 @@ mod_getDataWeather_server <- function(id, map=NULL, data = NULL, res_auth=NULL){
       paramsPheno <- data()$metadata$pheno
       colnames(dtProv) <- cgiarBase::replaceValues(colnames(dtProv), Search = paramsPheno$value, Replace = paramsPheno$parameter )
       envCol <- paramsPheno[which(paramsPheno$parameter == "environment"),"value"]
+      
       if(length(envCol) > 0){
-        fieldNames <- as.character(unique(dtProv[,"environment"]))
+        nenv<-length(unique(dtProv[,"environment"]))
+        if("longitude" %in% colnames(dtProv)){
+          latCol <- dtProv[,c("environment","longitude")] %>% dplyr::distinct(environment, .keep_all = TRUE)
+          fieldNames <- as.character(latCol$longitude)
+        }else{
+          fieldNames <- rep(0,nenv)
+        }
         lapply(1:length(fieldNames), function(i) {
           tags$div(id = "inline", numericInput(
             session$ns(paste0('longitude',i)),
             NULL,
-            value = 0
+            value = fieldNames[i],
           ))
         })
       }
@@ -243,13 +279,20 @@ mod_getDataWeather_server <- function(id, map=NULL, data = NULL, res_auth=NULL){
       paramsPheno <- data()$metadata$pheno
       colnames(dtProv) <- cgiarBase::replaceValues(colnames(dtProv), Search = paramsPheno$value, Replace = paramsPheno$parameter )
       envCol <- paramsPheno[which(paramsPheno$parameter == "environment"),"value"]
+      
       if(length(envCol) > 0){
-        fieldNames <- as.character(unique(dtProv[,"environment"]))
+        nenv<-length(unique(dtProv[,"environment"]))
+        if("plantingDate" %in% colnames(dtProv)){
+          latCol <- dtProv[,c("environment","plantingDate")] %>% dplyr::distinct(environment, .keep_all = TRUE)
+          fieldNames <- as.Date(latCol$plantingDate,"%m/%d/%y")
+        }else{
+          fieldNames <- rep(Sys.Date()-31,nenv)
+        }
         lapply(1:length(fieldNames), function(i) {
           tags$div(id = "inline", dateInput(
             session$ns(paste0('plantingDate',i)),
             NULL,
-            value = Sys.Date()-31
+            value=fieldNames[i],
           ))
         })
       }
@@ -260,13 +303,20 @@ mod_getDataWeather_server <- function(id, map=NULL, data = NULL, res_auth=NULL){
       paramsPheno <- data()$metadata$pheno
       colnames(dtProv) <- cgiarBase::replaceValues(colnames(dtProv), Search = paramsPheno$value, Replace = paramsPheno$parameter )
       envCol <- paramsPheno[which(paramsPheno$parameter == "environment"),"value"]
+      
       if(length(envCol) > 0){
-        fieldNames <- as.character(unique(dtProv[,"environment"]))
+        nenv<-length(unique(dtProv[,"environment"]))
+        if("harvestingDate" %in% colnames(dtProv)){
+          latCol <- dtProv[,c("environment","harvestingDate")] %>% dplyr::distinct(environment, .keep_all = TRUE)
+          fieldNames <- as.Date(latCol$harvestingDate,"%m/%d/%y")
+        }else{
+          fieldNames <- rep(Sys.Date()-31,nenv)
+        }
         lapply(1:length(fieldNames), function(i) {
           tags$div(id = "inline", dateInput(
             session$ns(paste0('harvestingDate',i)),
             NULL,
-            value = Sys.Date()-30
+            value=fieldNames[i],
           ))
         })
       }
@@ -279,30 +329,36 @@ mod_getDataWeather_server <- function(id, map=NULL, data = NULL, res_auth=NULL){
       envCol <- which(paramsPheno$parameter == "environment")
       if (length(envCol) > 0) {
         fieldNames <- as.character(unique(dtProv[,"environment"]))
-        values <- values2 <- values3 <- values4 <- values5 <- vector()
-        for (i in 1:length(fieldNames)) {
-          tempval <- reactive({paste0('input$','latitude',i)})
-          values[i] <- tempval()
-          values[i] <- eval(parse(text = values[i]))
-          tempval <- reactive({paste0('input$','longitude',i)})
-          values2[i] <- tempval()
-          values2[i] <- eval(parse(text = values2[i]))
-          tempval <- reactive({paste0('input$','plantingDate',i)})
-          values3[i] <- tempval()
-          values3[i] <- eval(parse(text = values3[i])) # eval(lubridate::parse_date_time2(as.character(values3[i]), orders='Ymd'))
-          tempval <- reactive({paste0('input$','harvestingDate',i)})
-          values4[i] <- tempval()
-          values4[i] <- eval(parse(text = values4[i]))
-          tempval <- reactive({paste0('input$','environment',i)})
-          values5[i] <- tempval()
-          values5[i] <- eval(parse(text = values5[i]))
+        n <- length(fieldNames)
+
+        values <- numeric(n)
+        values2 <- numeric(n)
+        values3 <- as.Date(rep(NA, n), origin="1970-01-01", tz="GMT")
+        values4 <- as.Date(rep(NA, n), origin="1970-01-01", tz="GMT")
+        values5 <- character(n)
+
+        for (i in seq_len(n)) {
+          lat <- input[[paste0("latitude", i)]]
+          if (!is.null(lat)) values[i] <- lat
+
+          lon <- input[[paste0("longitude", i)]]
+          if (!is.null(lon)) values2[i] <- lon
+
+          pd <- input[[paste0("plantingDate", i)]]
+          if (!is.null(pd)) values3[i] <- pd
+
+          hd <- input[[paste0("harvestingDate", i)]]
+          if (!is.null(hd)) values4[i] <- hd
+
+          env <- input[[paste0("environment", i)]]
+          if (!is.null(env)) values5[i] <- env
         }
-        values <- as.numeric( as.data.frame(t(as.numeric(values))) );
-        values2 <- as.numeric( as.data.frame(t(as.numeric(values2))) );
-        values3 <- as.Date(as.numeric( as.data.frame(t(as.numeric(values3))) ), origin="1970-01-01", tz="GMT")
-        values4 <- as.Date(as.numeric( as.data.frame(t(as.numeric(values4))) ), origin="1970-01-01", tz="GMT")
-        values5 <- as.character(as.data.frame(t(as.character(values5))) )
-        xx <- data.frame(latitude=values, longitude=values2, plantingDate=values3, harvestingDate=values4, environment=values5)
+        xx <- data.frame( latitude = values,
+                          longitude = values2,
+                          plantingDate = values3,
+                          harvestingDate= values4,
+                          environment = values5,
+                          stringsAsFactors = FALSE )
         return(xx)
       }
     })
@@ -317,6 +373,7 @@ mod_getDataWeather_server <- function(id, map=NULL, data = NULL, res_auth=NULL){
             lat = ~latitude,
             lon = ~longitude,
             type = "scattermapbox",
+            mode = "markers",
             hovertext = ~environment, #us_cities[,"City"],
             marker = list(color = "fuchsia"))
         fig <- fig %>%
@@ -361,6 +418,19 @@ mod_getDataWeather_server <- function(id, map=NULL, data = NULL, res_auth=NULL){
             result$metadata$weather <- weather$metadata # unique(rbind(result$metadata$weather, weather$descriptive))
             data(result)
             cat(paste("Weather data saved succesfully."))
+
+            output$preview_weather <- DT::renderDT({
+              DT::datatable(result$data$weather[,1:min(c(50,ncol(result$data$weather)))],
+                            extensions = 'Buttons',
+                            options = list(dom = 'Blfrtip',scrollX = TRUE,buttons = c('copy', 'csv', 'excel', 'pdf', 'print'),
+                                           lengthMenu = list(c(5,20,50,-1), c(5,20,50,'All'))),
+                            caption = htmltools::tags$caption(
+                              style = 'color:cadetblue; font-weight:bold; font-size: 18px', #caption-side: bottom; text-align: center;
+                              htmltools::em('Data preview.')
+                            )
+              )
+
+            }, server = FALSE)
 
           }else{
             cat(paste("Different environments cannot have the same coordinates. Please correct."))
@@ -457,6 +527,52 @@ mod_getDataWeather_server <- function(id, map=NULL, data = NULL, res_auth=NULL){
         )
       })
       fluidRow(do.call(tagList, weather_map))
+    })
+
+    ##produce the map plot
+    output$plotMeteo2 <-  plotly::renderPlotly({
+      req(data())
+      if(input$weather_input == 'weatherfile'){
+        req(input$selectenvironment)
+        req(input$selectlatitude)
+        req(input$selectlongitude)
+
+        if (is.null(weather_data_table())) return(NULL)
+      } else{
+        if (nrow(dataWeather()) == 0) return(NULL)
+      }
+
+      xx <- data()$data$weather
+      req(xx)
+      colnames(xx) <- cgiarBase::replaceValues(colnames(xx), Search = data()$metadata$weather$value, Replace = data()$metadata$weather$parameter )
+      if(all(c("latitude", "longitude", "environment") %in% colnames(xx))){
+        fig <- xx
+        fig <- fig %>%
+          plotly::plot_ly(
+            lat = ~latitude,
+            lon = ~longitude,
+            type = "scattermapbox",
+            mode = "markers",
+            hovertext = ~environment, #us_cities[,"City"],
+            marker = list(color = "fuchsia"))
+        fig <- fig %>%
+          plotly::layout(
+            mapbox = list(
+              style = 'open-street-map',
+              zoom =1,
+              center = list(lon = 0, lat = 0)
+            ),
+            title = list(
+              text = '<em>Map preview.</em>',
+              x = 0,
+              xanchor = "left",
+              font = list(size = 18,
+                          color = "cadetblue")
+            )
+          )
+        # }
+        fig
+      }
     })
 
 

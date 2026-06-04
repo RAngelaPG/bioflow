@@ -108,28 +108,74 @@ mod_qaGenoApp_ui <- function(id) {
 
                                               ))
       ),
-      tabPanel(div( icon("dice-two"), "Imputation", icon("arrow-right") ),
-               br(),
-               column(width = 12, style = "background-color:grey; color: #FFFFFF",
-                      column(width = 3,
-                             selectInput(ns("imputationMethod"),
-                                         "Imputation method",
-                                         choices = c("frequency"),
-                                         multiple = FALSE
-                                         )
-                             ),
-                      column(width = 2,
-                             br(),
-                             actionButton(ns('run_imputation'),
-                                          'Apply Imputation'))
-               ),
-               column(width = 12),
-               # Histogram tabset
-               shinydashboard::box(width = 12, status = "success",solidHeader=TRUE,collapsible = TRUE, collapsed = FALSE, title = "Visual aid (click on the '+' symbol on the right to open)",
-                                   column(width = 6,
-                                          verbatimTextOutput(ns('pre_imp_metrics'))
-                                   ))
-               ),
+      tabPanel(
+        div(icon("dice-two"), "Imputation", icon("arrow-right")),
+        br(),
+        fluidRow(
+          column(
+            width = 12,
+            style = "background-color:grey; color: #FFFFFF",
+            br(),
+            column(
+              width  = 12,
+              tags$div(
+                  style = "background:#fff3cd;border:1px solid #ffeeba;color:#856404;padding:12px;border-radius:6px;margin-bottom:12px;",
+                  tags$b("Warning:"),
+                  tags$p(style = "margin-bottom:0;", "The only module that currently supports missing data in the genotype matrix is the F1 qa/qc module."),
+                  tags$p(style = "margin-top:0;margin-bottom:0;", "If you have missing data and plan to use other Bioflow modules, do not skip imputation."),
+                )
+            ),
+            column(
+              width = 3,
+              selectInput(
+                ns("imputationMethod"),
+                "Imputation method",
+                choices = c("frequency"),
+                multiple = FALSE
+              )
+            ),
+            column(
+              width = 4,
+              br(),
+              div(
+                style = "display: inline-block; margin-right: 10px;",
+                actionButton(
+                  ns("run_imputation"),
+                  "Apply imputation"
+                )
+              ),
+              div(
+                style = "display: inline-block;",
+                actionButton(
+                  ns("skip_imputation"),
+                  "Skip imputation"
+                )
+              )
+            )
+          )
+        ),
+        column(width = 12),
+        shinydashboard::box(
+          width = 12,
+          status = "success",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          collapsed = FALSE,
+          title = "Visual aid (click on the '+' symbol on the right to open)",
+          column(
+            width = 6,
+            verbatimTextOutput(ns("pre_imp_metrics"))
+          ),
+          # column(
+          #   width = 6,
+          #   tags$div(
+          #     style = "color: #b30000; font-weight: bold; margin-top: 10px;",
+          #     "Warning: The only module that currently supports missing data in the genotype matrix is the F1 qa/qc module. ",
+          #     "If you have missing data and plan to use other Bioflow modules, do not skip imputation."
+          #   )
+          # )
+        )
+      ),
       tabPanel(div( icon("dice-three"), "Run analysis" ),
                br(),
                column(width=12,style = "background-color:grey; color: #FFFFFF",
@@ -615,13 +661,34 @@ mod_qaGenoApp_server <- function(id, data) {
         shinybusy::remove_modal_spinner()
       } else{
         # Imputation
-        shinybusy::show_modal_spinner('fading-circle', text = 'Imputing filtered genotyope matrix...')
+        shinybusy::show_modal_spinner('fading-circle', text = 'Imputing filtered genotype matrix...')
         geno_qa_data$imputation_log <- cgiarGenomics::impute_gl(gl = geno_qa_data$preview_geno$gl,
                                                                 ploidity = ploidity,
                                                                 method = input$imputationMethod)
 
         shinybusy::remove_modal_spinner()
       }
+    })
+
+    observeEvent(input$skip_imputation, {
+      req(geno_qa_data$preview_geno$gl)
+
+      ploidity <- as.numeric(data()$metadata$geno[2,]$value)
+
+      shinybusy::show_modal_spinner('fading-circle',
+                                    text = 'Using filtered genotype matrix without imputation...')
+
+      # Same structure as the "no missing data":
+      imp_dict <- lapply(seq(0, ploidity), function(x) { c(NA) })
+      names(imp_dict) <- as.character(seq(0, ploidity))
+
+      geno_qa_data$imputation_log <- list(
+        gl  = geno_qa_data$preview_geno$gl,
+        log = imp_dict
+      )
+
+      Sys.sleep(1)
+      shinybusy::remove_modal_spinner()
     })
 
     get_filtering_sequence <- function(filt_seq_df) {
