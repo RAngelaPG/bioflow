@@ -1040,8 +1040,6 @@ mod_hybridityApp_server <- function(id, data){
       idQa <- result$status[which(result$status$module %in% c("gVerif")),"analysisId"];
        idQa <- idQa[length(idQa)]
        
-       result$modeling=result$modeling[-which(result$modeling[result$modeling$analysisId==idQa,]$parameter=="MidMatchProbThres"),]
-       
        predictionsX <- result$predictions[which( result$predictions$analysisId == idQa),]
        modeling <- result$modeling[which(result$modeling$analysisId == idQa),]
        upperThres <- modeling[modeling$parameter == "UpperMatchProbThres","value"]
