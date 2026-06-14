@@ -1060,6 +1060,11 @@ mod_hybridityApp_server <- function(id, data){
        prob_status <- unique(data.frame(designation = predictionsX$designation[idx],
                                       .status = status,
                                       stringsAsFactors = FALSE))
+       
+       # Override status for F1s whose parents failed the heterozygosity filter
+       idx_het <- (predictionsX$trait == "parHetFilter")
+       het_fail_desig <- predictionsX$designation[idx_het][predictionsX$predictedValue[idx_het] == 0]
+       prob_status$.status[prob_status$designation %in% het_fail_desig] <- "PARENT FAIL"
       
       na_status = prob_status[is.na(prob_status$.status),]
       
