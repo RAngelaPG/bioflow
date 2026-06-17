@@ -108,6 +108,7 @@ if (is.null(result)){
   envsUsed <- unique(result$modeling[which(result$modeling$analysisId %in% idIndex),"environment"])
   mydata <- mydata[which(mydata$environment %in% envsUsed),]
   mTrait <- unique(result$modeling[which(result$modeling$analysisId %in% idIndex),"trait"])
+  mTrait <- gsub("_scaled","",mTrait)
   uTrait <- c(mTrait[which(mTrait %in% unique(mydata$trait))],"desireIndex")
   mydata <- mydata[which(mydata$trait %in% uTrait),]
   wide <- stats::reshape(mydata[,c(c("designation"),"trait",c("predictedValue", "entryType"))], direction = "wide", idvar = c("designation"),
