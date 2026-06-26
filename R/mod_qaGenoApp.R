@@ -569,10 +569,17 @@ mod_qaGenoApp_server <- function(id, data) {
       result <- data()
 
       # Filter modifications
-      if(!is.null(result$modifications$geno)){
-         result$modifications$geno <- rbind(result$modifications$geno, filter_mods)
+      if(!is.null(result[["modifications"]][["geno"]]) && is.data.frame(result[["modifications"]][["geno"]]) && nrow(result[["modifications"]][["geno"]]) > 0){
+         # Ensure column compatibility before rbind
+         shared_cols <- intersect(colnames(result[["modifications"]][["geno"]]), colnames(filter_mods))
+         if (length(shared_cols) == ncol(filter_mods)) {
+           result[["modifications"]][["geno"]] <- rbind(result[["modifications"]][["geno"]], filter_mods)
+         } else {
+           # Reset incompatible modifications and start fresh
+           result[["modifications"]][["geno"]] <- filter_mods
+         }
       } else {
-         result$modifications$geno <- filter_mods
+         result[["modifications"]][["geno"]] <- filter_mods
       }
 
       # Imputation modifications
@@ -589,6 +596,11 @@ mod_qaGenoApp_server <- function(id, data) {
       } else {
          result$data$geno_imp <- list()
          result$data$geno_imp[[up_analysis_id]] <- geno_qa_data$imputation_log$gl
+      }
+
+      # Preserve consensus_info from the main data object into geno_imp
+      if (!is.null(result$modifications$geno_raw) && length(result$modifications$geno_raw) > 0) {
+        result$data$geno_imp[[up_analysis_id]]@other$consensus_info <- result$modifications$geno_raw
       }
 
       newStatus <- data.frame(module="qaGeno", analysisId=filter_mods$analysisId[nrow(filter_mods)], analysisIdName=input$analysisIdName)
