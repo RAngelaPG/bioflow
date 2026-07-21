@@ -59,7 +59,7 @@ mod_hybridityApp_ui <- function(id){
 
                                                       ),
                                                       column(width=12),
-                                                      shinydashboard::box(width = 12, status = "success",solidHeader=TRUE,collapsible = TRUE, collapsed = TRUE, title = "Visual aid (click on the '+' symbol on the right to open)",
+                                                      shinydashboard::box(width = 12, status = "success",solidHeader=TRUE,collapsible = TRUE, collapsed = FALSE, title = "Visual aid (click on the '+' symbol on the right to open)",
                                                                           column(width=12,
                                                                                  hr(style = "border-top: 3px solid #4c4c4c;"),
                                                                                  h5(strong(span("The visualizations of the input-data located below will not affect your analysis but may help you pick the right input-parameters to be specified in the grey boxes above.", style="color:green"))),
@@ -196,7 +196,7 @@ mod_hybridityApp_ui <- function(id){
                                                # ------------ Collapsible Visual Aid ------------
                                                shinydashboard::box(
                                                  width = 12, status = "success", solidHeader = TRUE,
-                                                 collapsible = TRUE, collapsed = TRUE,
+                                                 collapsible = TRUE, collapsed = FALSE,
                                                  title = "Visual aid (click the '+' to open)",
 
                                                  column(
@@ -290,7 +290,7 @@ mod_hybridityApp_ui <- function(id){
                                                    # ------------ Collapsible Visual Aid ------------
                                                    shinydashboard::box(
                                                      width = 12, status = "success", solidHeader = TRUE,
-                                                     collapsible = TRUE, collapsed = TRUE,
+                                                     collapsible = TRUE, collapsed = FALSE,
                                                      title = "Visual aid (click the '+' to open)",
 
                                                      column(
