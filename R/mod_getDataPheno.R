@@ -986,11 +986,11 @@ mod_getDataPheno_server <- function(id, map = NULL, data = NULL, res_auth=NULL){
         pheno_map <- lapply(map, function(x) {
           column(3,
                  selectInput(
-                   inputId  = ns(paste0('select', x)),
-                   label    = HTML(ifelse(x %in% c('designation','trait','location'), as.character(p(x, span('(*required)',style="color:red"))),  ifelse(x %in% c('rep','iBlock','row','col'), as.character(p(x, span('(*recommended)',style="color:grey"))), as.character(p(x, span('(*optional)',style="color:grey")))  )   ) ) ,
+                   inputId  = ns(paste0('select', x)),                   
+                   label    = HTML(ifelse(x %in% c('designation','trait','location'), as.character(p(x, span('(*required)',style="color:red"))),  ifelse(x %in% c('rep','iBlock','row','col','rowDes','colDes'), as.character(p(x, span('(*recommended)',style="color:grey"))), as.character(p(x, span('(*optional)',style="color:grey")))  )   ) ) ,
                    multiple = ifelse(x == 'trait', TRUE, FALSE),
                    choices  = as.list(c('', header )),
-                   selected = ifelse(length(grep(x,header, ignore.case = TRUE)) > 0, header[grep(x,header, ignore.case = TRUE)[1]], '')
+                   selected = ifelse(length(grep(paste0("^", x, "$"),header, ignore.case = TRUE)) > 0, header[grep(paste0("^", x, "$"),header, ignore.case = TRUE)[1]], '')
                  ),
 
                  # shinyBS::bsTooltip(ns(paste0('select', x)), 'Mapping this!', placement = 'left', trigger = 'hover'),
