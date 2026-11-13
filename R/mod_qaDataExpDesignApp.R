@@ -1275,7 +1275,7 @@ mod_qaDataExpDesignApp_server <- function(id, data){
           consolidated <- keep
         }
       }
-
+      
       allMods <- do.call(rbind, Filter(Negate(is.null), list(object$modifications$pheno, myMods, consolidated)))
       object$modifications$pheno <- allMods
 
@@ -1305,11 +1305,14 @@ mod_qaDataExpDesignApp_server <- function(id, data){
         available <- data()$metadata$pheno[data()$metadata$pheno$parameter %in% c("rowDes","colDes","iBlock","rep"), "value"]
         available <- setdiff(available,"")
         if( length(available) == 0 ){
-          cat( "Please map some of your experimental design columns using the 'Data Retrieval' tab in the 'Phenotype' section to use this module.")
-          output$outExp2 <- renderPrint({
-            cat( "Please map some of your experimental design columns using the 'Data Retrieval' tab in the 'Phenotype' section to use this module.")
-          })
-        }else{
+          shinyWidgets::show_alert(
+            inputId = ns("statusConflicts"),
+            #text = HTML(cmod),
+            title = "Experimental design factors not found",
+            type= "info",
+            html= TRUE
+          )
+        }
           object <- data()
           result <- buildExpDesignResult(object, dropDf=x$df, connThreshold=as.numeric(input$ConThr))
           conftab <- dtFieldTraC()
@@ -1323,14 +1326,6 @@ mod_qaDataExpDesignApp_server <- function(id, data){
               }
             }
           
-          #shinyWidgets::show_alert(
-          #  inputId = ns("statusConflicts"),
-          #  text = HTML(cmod),
-          #  title = "Review experimental design factors in environment:",
-          #  type= "info",
-          #  html= TRUE
-          #)
-          
           aid <- result$status$analysisId[length(result$status$analysisId)]
           if("analysisIdName" %in% colnames(result$status)){result$status$analysisIdName[nrow(result$status)] <- input$analysisIdName}
           data(result)
@@ -1338,14 +1333,14 @@ mod_qaDataExpDesignApp_server <- function(id, data){
           # so the combined dashboard report can be rendered and downloaded.
           # tempdir() is always writable and stable within the R session, which the
           # app working directory may not be (e.g. inside a container).
-          try({
-            save(result, file = file.path(tempdir(), "resultQaPhenoDashboard.RData"))
-          }, silent = TRUE)
-          cat(paste("QA Exp Design step with id:",as.POSIXct( aid, origin="1970-01-01", tz="GMT"),"saved."))
+          #try({
+          #  save(result, file = file.path(tempdir(), "resultQaPhenoDashboard.RData"))
+          #}, silent = TRUE)
+          #cat(paste("QA Exp Design step with id:",as.POSIXct( aid, origin="1970-01-01", tz="GMT"),"saved."))
           output$outExp2 <- renderPrint({
             cat(paste("QA Exp Design step with id:",as.POSIXct( aid, origin="1970-01-01", tz="GMT"),"saved."))
           })
-        }
+        
         updateTabsetPanel(session, "tabsMain", selected = "outputTabs")
         shinybusy::remove_modal_spinner()
         
@@ -1393,6 +1388,7 @@ mod_qaDataExpDesignApp_server <- function(id, data){
           )
           
           output$outExp2 <- renderPrint({
+            aid <- data()$status$analysisId[length(data()$status$analysisId)]
             cat(paste("QA step with id:",as.POSIXct( aid, origin="1970-01-01", tz="GMT"),"for trait",paste(input$traitOutqPhenoMultiple, collapse = ", "),"saved. Now you can proceed to perform detection of outlier by residuals."))
           })
           

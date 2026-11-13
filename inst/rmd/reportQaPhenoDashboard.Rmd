@@ -117,17 +117,17 @@ download <- "params" %in% ls()
 # Load the single shared analysis object saved by the Experimental Design module.
 # The object is named `result` and carries the status/modifications/modeling for
 # all three QA steps (qaMissing, qaConsistency, qaExpDesign).
-result <- NULL
-suppressWarnings(tryCatch({
-  candidatePaths <- c(file.path(tempdir(), "resultQaPhenoDashboard.RData"),
-                      "./outputs/resultQaPhenoDashboard.RData",
-                      "data/resultQaPhenoDashboard.RData",
-                      "resultQaPhenoDashboard.RData")
-  hit <- candidatePaths[which(file.exists(candidatePaths))[1]]
-  if (length(hit) == 1 && !is.na(hit)) load(hit)
-}, error = function(e) {
-  shinyjs::hide()
-}))
+result <- data()
+#suppressWarnings(tryCatch({
+#  candidatePaths <- c(file.path(tempdir(), "resultQaPhenoDashboard.RData"),
+#                      "./outputs/resultQaPhenoDashboard.RData",
+#                      "data/resultQaPhenoDashboard.RData",
+#                      "resultQaPhenoDashboard.RData")
+#  hit <- candidatePaths[which(file.exists(candidatePaths))[1]]
+#  if (length(hit) == 1 && !is.na(hit)) load(hit)
+#}, error = function(e) {
+#  shinyjs::hide()
+#}))
 ```
 
 This report consolidates the three Phenotype QA/QC steps into a single dashboard. Each section is filled only if the corresponding step has been executed and saved into the analysis object.

@@ -360,7 +360,15 @@ mod_qaDataMissApp_server <- function(id, data){
       if (is.null(res) || is.null(res$design_trait)) {
         return(NULL)
       }
-      tt<- res$design_trait[order(res$design_trait$trait,res$design_trait$environment,res$design_trait$rep, res$design_trait$iBlock),]
+      if(all(c("environment", "pct_missing", "trait", "rep","iBlock")%in%colnames(res$design_trait))){
+        tt<- res$design_trait[order(res$design_trait$trait,res$design_trait$environment,res$design_trait$rep, res$design_trait$iBlock),]
+      }else{
+         tt<-data.frame("Rep/Block are not available")
+         colnames(tt)="No available"
+         rownames(tt)="No available"
+       }
+      
+      
       DT::datatable(tt,
                     options = list(pageLength = 10,scrollX = TRUE)
       )
