@@ -1,0 +1,79 @@
+# Construye bioflow-portable-win.zip (R + todas las librerias de portable/renv.lock)
+# - Al publicar un Release: lo adjunta al Release automaticamente.
+# - Manual (pestana Actions > Run workflow): lo deja como artefacto descargable para probar.
+
+name: Portable Windows
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}   # evita limites de la API al bajar paquetes de GitHub
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.5.1'   # DEBE coincidir con la version de R usada en crear_lockfile.R
+          use-public-rspm: true
+
+      - name: Instalar librerias exactas del renv.lock
+        shell: Rscript {0}
+        run: |
+          install.packages("renv", repos = "https://cloud.r-project.org")
+          dir.create("dist/library", recursive = TRUE)
+          renv::restore(lockfile = "portable/renv.lock",
+                        library  = normalizePath("dist/library"),
+                        prompt   = FALSE)
+          if (!dir.exists("dist/library/renv"))
+            install.packages("renv", lib = "dist/library", repos = "https://cloud.r-project.org")
+
+      - name: Copiar R y archivos del lanzador
+        shell: pwsh
+        run: |
+          $rhome = Rscript -e "cat(normalizePath(R.home()))"
+          Copy-Item -Recurse $rhome dist/R-Portable
+          Copy-Item portable/run.R, portable/iniciar.bat, portable/renv.lock dist/
+          $ver = if ("${{ github.event_name }}" -eq "release") { "${{ github.ref_name }}" } else { "dev-${{ github.sha }}" }
+          Set-Content dist/version.txt $ver
+
+      - name: Incluir pandoc (para los reportes de rmarkdown)
+        shell: pwsh
+        run: |
+          $v = "3.6.4"
+          Invoke-WebRequest "https://github.com/jgm/pandoc/releases/download/$v/pandoc-$v-windows-x86_64.zip" -OutFile pandoc.zip
+          Expand-Archive pandoc.zip -DestinationPath pandoc_tmp
+          New-Item -ItemType Directory -Force dist/pandoc | Out-Null
+          Copy-Item "pandoc_tmp/pandoc-$v/pandoc.exe" dist/pandoc/
+
+      - name: Prueba - bioflow y pandoc funcionan con el R incluido
+        shell: pwsh
+        run: |
+          cd dist
+          ./R-Portable/bin/Rscript.exe --vanilla -e ".libPaths(c(normalizePath('library'), .Library)); Sys.setenv(RSTUDIO_PANDOC = normalizePath('pandoc')); library(bioflow); stopifnot(rmarkdown::pandoc_available('2.8')); cat('bioflow', as.character(packageVersion('bioflow')), '+ pandoc', as.character(rmarkdown::pandoc_version()), 'OK\n')"
+
+      - name: Comprimir
+        shell: pwsh
+        run: 7z a -tzip bioflow-portable-win.zip ./dist/*
+
+      - name: Adjuntar al Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bioflow-portable-win.zip
+
+      - name: Guardar como artefacto (ejecucion manual)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bioflow-portable-win
+          path: bioflow-portable-win.zip
