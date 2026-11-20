@@ -29,13 +29,24 @@ jobs:
       - name: Instalar librerias exactas del renv.lock
         shell: Rscript {0}
         run: |
-          install.packages("renv", repos = "https://cloud.r-project.org")
+          install.packages(c("renv", "pak", "jsonlite"), repos = "https://cloud.r-project.org")
           dir.create("dist/library", recursive = TRUE)
-          renv::restore(lockfile = "portable/renv.lock",
-                        library  = normalizePath("dist/library"),
-                        prompt   = FALSE)
-          if (!dir.exists("dist/library/renv"))
-            install.packages("renv", lib = "dist/library", repos = "https://cloud.r-project.org")
+          lib <- normalizePath("dist/library")
+
+          # 1) Todas las dependencias, con las versiones exactas del lockfile
+          renv::restore(lockfile = "portable/renv.lock", library = lib,
+                        exclude = "bioflow", prompt = FALSE)
+
+          # 2) bioflow en el commit exacto del lockfile, con pak (igual que en tu PC)
+          lock <- jsonlite::fromJSON("portable/renv.lock")
+          bf   <- lock$Packages$bioflow
+          ref  <- sprintf("%s/%s@%s", bf$RemoteUsername, bf$RemoteRepo, bf$RemoteSha)
+          message("Instalando ", ref)
+          .libPaths(c(lib, .libPaths()))
+          pak::pkg_install(ref, lib = lib, upgrade = FALSE, dependencies = FALSE)
+
+          if (!dir.exists(file.path(lib, "renv")))
+            install.packages("renv", lib = lib, repos = "https://cloud.r-project.org")
 
       - name: Copiar R y archivos del lanzador
         shell: pwsh
